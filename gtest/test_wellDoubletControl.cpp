@@ -1,17 +1,58 @@
-#include "wellDoubletControl.cpp"
-#include "fakeSimulator.cpp"
+
+#include "fakeSimulator.h"
+#include "wellDoubletControl.h"
 
 
 TEST(WellDoublet, Test)
 {
 
-	FakeSimulator simulator = FakeSimulator(
-		WellDoubletControl::createWellDoubletControl('B'));
+	FakeSimulator simulator;
 
-	simulator.simulate(1.e6, 0.01, 48.);  // Q_H, value_target, value_threshold
+	simulator.simulate('B', 1.e6, 0.01, 48., false);  // wellDoubletControl scheme, 
+					// Q_H, value_target, value_threshold
+
+	WellDoubletCalculation result = simulator.get_wellDoubletControl()->get_result();
 
 	EXPECT_TRUE(true);
 }
+
+
+class WellDoubletTest : public ::testing::TestWithParam<std::tr1::tuple<
+	char, double, double, double,
+	double, double, double, bool> > {};
+
+
+TEST_P(WellDoubletTest, fake_simulations_with_ten_time_steps)
+{
+
+	FakeSimulator simulator;
+
+	simulator.simulate(std::tr1::get<0>(GetParam()),  // wellDoubletControl scheme
+				std::tr1::get<1>(GetParam()),  // Q_H
+				std::tr1::get<2>(GetParam()),  // value_target
+				std::tr1::get<3>(GetParam()),  // value_threshold
+				false);  // flag_print
+
+	WellDoubletCalculation result = simulator.get_wellDoubletControl()->get_result();
+
+	EXPECT_NEAR(std::tr1::get<4>(GetParam()), result.Q_H, 1.e-3 * fabs(result.Q_H));
+	EXPECT_NEAR(std::tr1::get<5>(GetParam()), result.Q_w, 1.e-3 * fabs(result.Q_w));
+	EXPECT_NEAR(std::tr1::get<6>(GetParam()), result.T1, 1.e-3 * fabs(result.T1));
+	EXPECT_EQ(std::tr1::get<7>(GetParam()), result.flag_powerrateAdapted);
+
+}
+
+
+INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
+	// input: scheme, Q_H, value_target, value_threshold
+	// output: Q_H, Q_w, flag_powerrateAdapted
+
+	// Scheme B - storing
+	std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
+			1.e6, 0.01, 49.96, false),  // has not reached threshold
+	std::make_tuple('B', 1.e6, 0.01, 48., // Q_w_target, T1_max
+			9.5e5, 0.01, 48., true)  // has reached threshold
+));
 
 
 /*
