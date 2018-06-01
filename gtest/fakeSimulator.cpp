@@ -57,7 +57,7 @@ void FakeSimulator::execute_timeStep(const double& Q_H,
 		wellDoubletControl->set_temperatures(
 				temperatures[NODE_NUMBER_T1], TEMPERATURE_2);
 
-		flag_iterate = wellDoubletControl->check_result();
+		flag_iterate = wellDoubletControl->evaluate_simulation_result();
 		if(!flag_iterate) { LOG("\tconverged"); break; }
 	}
 

@@ -7,7 +7,7 @@
 void WellDoubletCalculation::adapt_powerrate(WellSchemeAC* scheme)
 {
         Q_H -= Q_w * scheme->simulator->get_heatcapacity() * (
-		(this->*value_aiming_at_target)() -
+		(this->*simulation_result_aiming_at_target)() -
 			// Scheme A: T1, Scheme C: T1 - T2 
 		scheme->value_target);
         LOG("\t\t\tadapt power rate\t" + std::to_string(Q_H));
@@ -41,7 +41,8 @@ void WellDoubletCalculation::set_flowrate(WellSchemeB* scheme)
 
 void WellDoubletCalculation::adapt_flowrate(WellSchemeAC* scheme)
 {
-	double delta = 4 * (T1 - scheme->value_target) / scheme->value_target;
+	double delta = 4 * ((this->*simulation_result_aiming_at_target)() - 
+			scheme->value_target) / scheme->value_target;
 
         if(scheme->flag_storing)
 	{

@@ -9,25 +9,31 @@ class WellSchemeB;
 
 class WellDoubletCalculation
 {
-        double Q_H, Q_w;  // power rate, flow rate
+        double Q_H, Q_w;  // power rate Q_H (given input, potentially adapted),
+				// flow rate Q_w either calculated
+				// (schemes A and C) or set as input (Scheme B)
         double T1, T2;  // temperature at well 1 ("warm well") 
-			// and 2 ("cold well")
+			// and 2 ("cold well") obtained from simulation results
 
-        bool flag_powerrateAdapted;
-        bool flag_flowrateAdapted;
+        bool flag_powerrateAdapted;  // says if storage meets requirement or not
+        bool flag_flowrateAdapted;  // to let adaption of power rate follow the
+			// adaption of the flow rate if this did not succeed
 
 public:
-	double (WellDoubletCalculation::*value_aiming_at_target) () const;
-		// used to differentiate between scheme A and C
+	double (WellDoubletCalculation::*simulation_result_aiming_at_target)
+									() const;
+		// scheme A: pointing at temperature_Well1(),
+		// scheme C: pointing at temperature_difference(),
 		// not used in scheme B, where target value (flow rate)
 		// is just set
 
 	const double& powerrate() const { return Q_H; }
 	const double& flowrate() const { return Q_w; }
 
-	double temperature_well1() const { return T1; }
+	double temperature_well1() const { return T1; }  // to evaluate target
 	const double& temperature_well2() const { return T2; }
-	double temperature_difference() const { return T1 - T2; }
+	double temperature_difference() const { return T1 - T2; }  
+							// to evaluate target
 
 	const bool& powerrateAdapted() const { return flag_powerrateAdapted; }
 

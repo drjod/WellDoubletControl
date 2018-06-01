@@ -46,22 +46,22 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	// output: Q_H, Q_w, T1, flag_powerrateAdapted
 
 	// Scheme A - storing
-	std::make_tuple('A', 1.e5, 60., 0.01, // T1_target, Q_w_max
-			1.e5, 0.0, 30., false),  // target T1 not reached although flow rate is zero
+	//std::make_tuple('A', 1.e5, 60., 0.01, // T1_target, Q_w_max
+	//		1.e5, 0.0, 30., false),  // target T1 not reached although flow rate is zero
 	std::make_tuple('A', 1.e6, 60., 0.01, // T1_target, Q_w_max
 			1.e6, 0.008, 60., false),  // target T1 reached by adapting flow rate
-	std::make_tuple('A', 2.e6, 60., 0.01, // T1_target, Q_w_max
-			1.25e6, 0.01, 60., true),  // target T1 reached by adapting power rate
+	//std::make_tuple('A', 2.e6, 60., 0.01, // T1_target, Q_w_max
+	//		1.25e6, 0.01, 60., true),  // target T1 reached by adapting power rate
 	// Scheme B - storing
-	std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
-			1.e6, 0.01, 49.96, false),  // has not reached threshold
-	std::make_tuple('B', 1.e6, 0.01, 48., // Q_w_target, T1_max
-			9.5e5, 0.01, 48., true),  // has reached threshold
+	//std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
+	//		1.e6, 0.01, 49.96, false),  // has not reached threshold
+	//std::make_tuple('B', 1.e6, 0.01, 48., // Q_w_target, T1_max
+	//		9.5e5, 0.01, 48., true),  // has reached threshold
 	// Scheme C - storing (same examples as for scheme A, and should give same results)
-	std::make_tuple('C', 1.e5, 50., 0.01, // DT_target, Q_w_max
-			1.e5, 0.0, 30., false)  // target T1 not reached although flow rate is zero
-	//std::make_tuple('C', 1.e6, 50., 0.01, // DT_target, Q_w_max
-	//		1.e6, 0.008, 60., false)  // target T1 reached by adapting flow rate
+	//std::make_tuple('C', 1.e5, 50., 0.01, // DT_target, Q_w_max
+	//		1.e5, 0.0, 30., false),  // target T1 not reached although flow rate is zero
+	std::make_tuple('C', 1.e6, 50., 0.01, // DT_target, Q_w_max
+			1.e6, 0.008, 60., false)  // target T1 reached by adapting flow rate
 	//std::make_tuple('C', 2.e6, 50., 0.01, // DT_target, Q_w_max
 	//		1.25e6, 0.01, 60., true)  // target T1 reached by adapting power rate
 

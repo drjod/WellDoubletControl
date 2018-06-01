@@ -37,7 +37,7 @@ public:
 
 	virtual void configure() = 0;
 	virtual void provide_flowrate() = 0;
-	virtual bool check_result() = 0;
+	virtual bool evaluate_simulation_result() = 0;
 	
 	void set_constraints(const double& _Q_H,  
 		const double& _value_target, const double& _value_threshold);
@@ -63,7 +63,7 @@ public:
 
 	void configure();
 	void provide_flowrate();
-	bool check_result();
+	bool evaluate_simulation_result();
 };
 
 class WellSchemeB : public WellDoubletControl
@@ -74,7 +74,7 @@ public:
 
 	void configure();
 	void provide_flowrate();
-	bool check_result();
+	bool evaluate_simulation_result();
 };
 
 #endif

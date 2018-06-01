@@ -22,12 +22,14 @@ void WellDoubletControl::set_constraints(const double& _Q_H,
 
 	if(_Q_H > 0.)
 	{
-		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) << + " - storing");
+		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) <<
+			+ " - storing");
 		flag_storing = true;
 	}
 	else
 	{
-		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) << + " - extracting");
+		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) <<
+			+ " - extracting");
 		flag_storing = false;
 	}
 	configure();  // the scheme-dependent stuff (comparison functions)
@@ -73,12 +75,14 @@ void WellSchemeAC::configure()
 	if(scheme_identifier == 'A')  // T1 at warm well
 	{
 		LOG("\t\t\tconfigure scheme A");
-		result.value_aiming_at_target = &WellDoubletCalculation::temperature_well1;
+		result.simulation_result_aiming_at_target =
+			&WellDoubletCalculation::temperature_well1;
 	} 
 	else if(scheme_identifier == 'C')  // T1 - T2
 	{
 		LOG("\t\t\tconfigure scheme C");
-		result.value_aiming_at_target = &WellDoubletCalculation::temperature_difference;
+		result.simulation_result_aiming_at_target =
+			&WellDoubletCalculation::temperature_difference;
 	}
 	if(flag_storing)
 	{
@@ -96,10 +100,10 @@ void WellSchemeAC::configure()
 
 void WellSchemeAC::provide_flowrate() { result.estimate_flowrate(this); }
 
-bool WellSchemeAC::check_result()
+bool WellSchemeAC::evaluate_simulation_result()
 {
 	double simulation_result_aiming_at_target = (result.*(
-				result.value_aiming_at_target))();
+				result.simulation_result_aiming_at_target))();
 	// first adapt flow rate if temperature 1 at warm well is not
 	// at target value
 	if(!result.flag_flowrateAdapted)
@@ -121,7 +125,8 @@ bool WellSchemeAC::check_result()
 				return true;
 			}
 		}
-		else if(notReached(simulation_result_aiming_at_target, value_target))
+		else if(notReached(
+			simulation_result_aiming_at_target, value_target))
 		{
 			// if T1 has not reached the target value
 			// although flow Q_W is zero, 
@@ -168,7 +173,7 @@ void WellSchemeB::configure()
 
 void WellSchemeB::provide_flowrate() { result.set_flowrate(this); }
 
-bool WellSchemeB::check_result()
+bool WellSchemeB::evaluate_simulation_result()
 {
 	if(result.flag_powerrateAdapted || beyond(result.T1, value_threshold))
 	{
