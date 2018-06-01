@@ -54,11 +54,12 @@ void FakeSimulator::execute_timeStep(const double& Q_H,
 {
 	wellDoubletControl->set_constraints(Q_H,
 			value_target, value_threshold);
-
+LOG(Q_H);
+		wellDoubletControl->calculate_flowrate();
 	for(int i=0; i<NUMBER_OF_ITERATIONS; i++)
 	{
 		LOG("\titeration " + std::to_string(i));
-		wellDoubletControl->calculate_flowrate();
+		//wellDoubletControl->calculate_flowrate();
 
 		calculate_temperatures(wellDoubletControl->get_Q_H(),
 					wellDoubletControl->get_Q_w());

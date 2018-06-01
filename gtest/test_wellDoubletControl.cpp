@@ -2,7 +2,7 @@
 #include "fakeSimulator.h"
 #include "wellDoubletControl.h"
 
-
+/*
 TEST(WellDoublet, Test)
 {
 
@@ -15,14 +15,13 @@ TEST(WellDoublet, Test)
 
 	EXPECT_TRUE(true);
 }
-
+*/
 
 class WellDoubletTest : public ::testing::TestWithParam<std::tr1::tuple<
-	char, double, double, double,
-	double, double, double, bool> > {};
+	char, double, double, double, double, double, double, bool> > {};
 
 
-TEST_P(WellDoubletTest, fake_simulations_with_ten_time_steps)
+TEST_P(WellDoubletTest, storage_simulation_with_ten_time_steps)
 {
 
 	FakeSimulator simulator;
@@ -31,7 +30,7 @@ TEST_P(WellDoubletTest, fake_simulations_with_ten_time_steps)
 				std::tr1::get<1>(GetParam()),  // Q_H
 				std::tr1::get<2>(GetParam()),  // value_target
 				std::tr1::get<3>(GetParam()),  // value_threshold
-				false);  // flag_print
+				true);  // flag_print
 
 	WellDoubletCalculation result = simulator.get_wellDoubletControl()->get_result();
 
@@ -45,14 +44,21 @@ TEST_P(WellDoubletTest, fake_simulations_with_ten_time_steps)
 
 INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	// input: scheme, Q_H, value_target, value_threshold
-	// output: Q_H, Q_w, flag_powerrateAdapted
+	// output: Q_H, Q_w, T1, flag_powerrateAdapted
 
+	// Scheme A - storing
+	std::make_tuple('A', 1.e6, 60., 0.01, // T1_target, Q_w_max
+			39536, 0.0097, 45., false)  // has not reached threshold
 	// Scheme B - storing
-	std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
+	/*std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
 			1.e6, 0.01, 49.96, false),  // has not reached threshold
 	std::make_tuple('B', 1.e6, 0.01, 48., // Q_w_target, T1_max
 			9.5e5, 0.01, 48., true)  // has reached threshold
+*/
 ));
+
+
+
 
 
 /*

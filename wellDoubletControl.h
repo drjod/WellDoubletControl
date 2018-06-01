@@ -2,37 +2,16 @@
 #define WELLDOUBLETCONTROL_H
 
 #include<string>
-#define LOG(x)
-//#define LOG(x) std::cout << x << std::endl 
-#define EPSILON 1.e-2
+
 
 #include <math.h>
 #include <iostream>
+#include "wellDoubletCalculation.h"
 #include "comparison.h"
 #include "fakeSimulator.h"
+#include "parameter.h"
 
-
-class WellSchemeA;
-class WellSchemeB;
-class WellSchemeC;
 class FakeSimulator;
-
-
-struct WellDoubletCalculation
-{
-	double Q_H, Q_w;  // power rate, flow rate
-	double T1, T2;  // temperature at well 1 ("warm well") and 2 ("cold well")
-	
-	bool flag_powerrateAdapted;
-
-	void adapt_powerrate(WellSchemeA* scheme);
-	void adapt_powerrate(WellSchemeB* scheme);
-	void adapt_powerrate(WellSchemeC* scheme);
-
-	void calculate_flowrate(WellSchemeA* scheme);
-	void calculate_flowrate(WellSchemeB* scheme);
-	void calculate_flowrate(WellSchemeC* scheme);
-};
 
 
 class WellDoubletControl
