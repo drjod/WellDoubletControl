@@ -40,36 +40,25 @@ void FakeSimulator::update_temperatures()
 		temperatures_old[i] = temperatures[i];
 }
 
-void FakeSimulator::print_temperatures()
-{
-	std::cout << "\t\t\t\t";
-	for(int i=0; i<GRID_SIZE; i++)
-		std::cout << temperatures[i] << " ";
-	std::cout << std::endl;
-}
-
 void FakeSimulator::execute_timeStep(const double& Q_H,
-		const double& value_target, const double& value_threshold, 
-		const bool& flag_print)
+		const double& value_target, const double& value_threshold)
 {
 	wellDoubletControl->set_constraints(Q_H,
 			value_target, value_threshold);
-LOG(Q_H);
-		wellDoubletControl->calculate_flowrate();
+	wellDoubletControl->provide_flowrate();  
+		// an estimation in scheme A and a target value in scheme B
+
 	for(int i=0; i<NUMBER_OF_ITERATIONS; i++)
 	{
 		LOG("\titeration " + std::to_string(i));
-		//wellDoubletControl->calculate_flowrate();
 
-		calculate_temperatures(wellDoubletControl->get_Q_H(),
-					wellDoubletControl->get_Q_w());
+		calculate_temperatures(wellDoubletControl->get_result().powerrate(),
+					wellDoubletControl->get_result().flowrate());
 		wellDoubletControl->set_temperatures(
 				temperatures[NODE_NUMBER_T1], TEMPERATURE_2);
 
-		if(flag_print) wellDoubletControl->print_temperatures();
-
 		flag_iterate = wellDoubletControl->check_result();
-		if(!flag_iterate) { LOG("\t\t\tconverged"); break; }
+		if(!flag_iterate) { LOG("\tconverged"); break; }
 	}
 
 
@@ -77,7 +66,7 @@ LOG(Q_H);
 
 void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 			const double& Q_H, const double& value_target,
-			const double& value_threshold, const bool& flag_print)
+			const double& value_threshold)
 {
 	initialize_temperatures();
 
@@ -85,10 +74,19 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 	{       
 		configure_wellDoubletControl(wellDoubletControlScheme);
 		LOG("time step " + std::to_string(i));
-		execute_timeStep(Q_H, value_target, value_threshold,
-				flag_print);
-		if(flag_print)
-			print_temperatures();
+		execute_timeStep(Q_H, value_target, value_threshold);
+		
+		LOG(*this);
 		update_temperatures();
 	}
 }
+
+
+std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator)
+{
+	stream << "\t\tATES temperatures: ";
+        for(int i=0; i<GRID_SIZE; ++i)
+                stream << simulator.temperatures[i] << " ";
+        return stream;
+}
+

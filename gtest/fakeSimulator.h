@@ -40,14 +40,16 @@ public:
 	void calculate_temperatures(const double& Q_H, const double& Q_w);
 						// solves advection equation
         void update_temperatures();
-        void print_temperatures();
+
 	void execute_timeStep(const double& Q_H, const double& value_target,
-		const double& value_threshold, const bool& flag_print=true);
+		const double& value_threshold);
 	void simulate(const char& wellDoubletControlScheme, const double& Q_H, 
-		const double& value_target, const double& value_threshold, 
-		const bool& flag_print=true);
+		const double& value_target, const double& value_threshold);
 		// values are passed to execute_timeStep(), they are constant
 		// now but will be timestep-dependent in a real application
+
+	friend std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator);
 };
+
 
 #endif

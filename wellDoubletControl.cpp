@@ -1,7 +1,7 @@
 #include "wellDoubletControl.h"
 #include <stdexcept>
 
-void WellDoubletControl::print_temperatures()
+void WellDoubletControl::print_temperatures() const
 {
 	std::cout << "\t\t\tT1: " << result.T1 << " - T2: " <<
 		result.T2 << std::endl;
@@ -10,8 +10,10 @@ void WellDoubletControl::print_temperatures()
 
 void WellDoubletControl::set_constraints(const double& _Q_H,
 	const double& _value_target, const double& _value_threshold) 
-{ 
+{
+	// set input values for well doublet control, e.g. from file
 	result.Q_H = _Q_H;  // stored (Q_H>0) or extracted (Q_H<0) heat
+
 	value_target = _value_target;
 	value_threshold = _value_threshold;
 
@@ -19,17 +21,24 @@ void WellDoubletControl::set_constraints(const double& _Q_H,
 	result.flag_flowrateAdapted = false;
 
 	if(_Q_H > 0.)
+	{
+		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) << + " - storing");
 		flag_storing = true;
-	else  // extracting
+	}
+	else
+	{
+		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) << + " - extracting");
 		flag_storing = false;
-
-	initialize();  // the scheme-dependent stuff (comparison functions)
+	}
+	configure();  // the scheme-dependent stuff (comparison functions)
 }
 
 void WellDoubletControl::set_temperatures(const double& _T1, const double& _T2)  
 {
 	result.T1 = _T1;  // warm well
 	result.T2 = _T2;  // cold well
+	LOG("\t\t\tset temperatures\tT1: " + std::to_string(_T1) +
+					" - T2: " + std::to_string(_T2));
 }
 
 
@@ -40,13 +49,13 @@ WellDoubletControl* WellDoubletControl::createWellDoubletControl(
 	switch(selection)
 	{
 		case  'A':
-			return new WellSchemeA(simulator);
+			return new WellSchemeAC(simulator, 'A');
 			break;
 		case  'B':
-			return new WellSchemeB(simulator);
+			return new WellSchemeB(simulator, 'B');
 			break;
 		case  'C':
-			return new WellSchemeC(simulator);
+			return new WellSchemeAC(simulator, 'C');
 			break;
 		default:
 			throw std::runtime_error("Well scheme not set");
@@ -59,107 +68,112 @@ WellDoubletControl* WellDoubletControl::createWellDoubletControl(
 //////////////////////////////////////////////////////////
 
 
-void WellSchemeA::initialize()
+void WellSchemeAC::configure()
 {
-LOG("INIT");
-	//result.T1 = value_target;
-
+	if(scheme_identifier == 'A')  // T1 at warm well
+	{
+		LOG("\t\t\tconfigure scheme A");
+		result.value_aiming_at_target = &WellDoubletCalculation::temperature_well1;
+	} 
+	else if(scheme_identifier == 'C')  // T1 - T2
+	{
+		LOG("\t\t\tconfigure scheme C");
+		result.value_aiming_at_target = &WellDoubletCalculation::temperature_difference;
+	}
 	if(flag_storing)
 	{
-		beyondThreshold = Comparison(new Greater(EPSILON));
-		check_for_flowrateAdaption =  Comparison(new Smaller(EPSILON));
+		LOG("\t\t\t\tfor storing");
+		beyond = Comparison(new Greater(EPSILON));
+		notReached =  Comparison(new Smaller(EPSILON));
 	}
 	else
 	{
-		beyondThreshold = Comparison(new Smaller(EPSILON));
-		check_for_flowrateAdaption = Comparison(new Greater(EPSILON));
+		LOG("\t\t\t\tfor extracting");
+		beyond = Comparison(new Smaller(EPSILON));
+		notReached = Comparison(new Greater(EPSILON));
 	}
 }
 
-void WellSchemeA::calculate_flowrate() { result.calculate_flowrate(this); }
+void WellSchemeAC::provide_flowrate() { result.estimate_flowrate(this); }
 
-bool WellSchemeA::check_result()
+bool WellSchemeAC::check_result()
 {
-if(result.T1 > 50+ 0.01)
-{
-result.Q_w *= 1.1;
-LOG("new Qw ");
-LOG(result.Q_w);
-return true;
-}
-
-if(result.T1 < 50- 0.01)
-{
-result.Q_w *= 0.9;
-LOG("new Qw ");
-LOG(result.Q_w);
-return true;
-}
-	/*if(!result.flag_flowrateAdapted && (result.flag_powerrateAdapted || beyondThreshold(result.T1, value_target)))
+	double simulation_result_aiming_at_target = (result.*(
+				result.value_aiming_at_target))();
+	// first adapt flow rate if temperature 1 at warm well is not
+	// at target value
+	if(!result.flag_flowrateAdapted)
 	{
-
-result.Q_w *= 10;
-		//if(fabs(result.T1 - value_target) < EPSILON)
-		//	return false;  // stop iterating
-		//result.adapt_powerrate(this);
-		return true;
-	}
-	else
-	{
-		if(result.flag_flowrateAdapted || check_for_flowrateAdaption(result.T1, value_target))
+		if(beyond(simulation_result_aiming_at_target, value_target))
 		{
-			//result.calculate_flowrate(this);
-result.Q_w *= 0.1;
-LOG("new Qw ");
-LOG(result.Q_w);
-			return true;
+			// if temperature T1 at warm well T1 is beyond target 
+			// and flow rate Q_w already at threshold, 
+			// Q_w cannot be increased and,  therefore, 
+			// flow adaption stops
+        		if(fabs(result.Q_w - value_threshold) < 1.e-5)
+        		{  // Q_w at threshold
+                		result.flag_flowrateAdapted = true;  
+                		LOG("\t\t\tstop adapting flow rate");
+			}
+			else
+			{
+				result.adapt_flowrate(this);
+				return true;
+			}
 		}
-	}*/
-	return false;
-}
-
-
-void WellSchemeB::initialize()
-{
-	if(flag_storing)
-		beyondThreshold = Comparison(new Greater(0.));
-	else
-		beyondThreshold = Comparison(new Smaller(0.));
-}
-
-void WellSchemeB::calculate_flowrate() { result.calculate_flowrate(this); }
-
-bool WellSchemeB::check_result()
-{
-	if(result.flag_powerrateAdapted || beyondThreshold(result.T1, value_threshold))
+		else if(notReached(simulation_result_aiming_at_target, value_target))
+		{
+			// if T1 has not reached the target value
+			// although flow Q_W is zero, 
+			// flow adaption stops as well
+        		if(fabs(result.Q_w) < 1.e-5)  // flow rate becomes zero 
+        		{
+                		result.flag_flowrateAdapted = true;  
+                		LOG("\t\t\tstop adapting flow rate");
+			}
+			else
+			{
+				result.adapt_flowrate(this);
+				return true;
+			}
+		}
+		// else T1 at threshold - converged (function will return false)
+	}
+	
+	// then adapt power rate if temperature 1 at warm well is beyond target
+	// (and flow rate adaption as not succedded before)
+	if(beyond(simulation_result_aiming_at_target, value_target))
 	{
-		if(fabs(result.T1 - value_threshold) < EPSILON)
-			return false;  // stop iterating
 		result.adapt_powerrate(this);
 		return true;
 	}
-	return false;
+
+	return false;  // means converged
 }
 
 
-void WellSchemeC::initialize()
+void WellSchemeB::configure()
 {
 	if(flag_storing)
 	{
-		beyondThreshold = Comparison(new Greater(0.));
+		LOG("\t\t\tconfigure scheme B for storing");
+		beyond = Comparison(new Greater(0.));
 	}
 	else
 	{
-		beyondThreshold = Comparison(new Smaller(0.));
+		LOG("\t\t\tconfigure scheme B for extracting");
+		beyond = Comparison(new Smaller(0.));
 	}
 }
 
-void WellSchemeC::calculate_flowrate() { result.calculate_flowrate(this); }
+void WellSchemeB::provide_flowrate() { result.set_flowrate(this); }
 
-bool WellSchemeC::check_result()
+bool WellSchemeB::check_result()
 {
-	if(beyondThreshold(result.T1, value_threshold))
+	if(result.flag_powerrateAdapted || beyond(result.T1, value_threshold))
 	{
+		if(fabs(result.T1 - value_threshold) < EPSILON)
+			return false;  // stop iterating
 		result.adapt_powerrate(this);
 		return true;
 	}

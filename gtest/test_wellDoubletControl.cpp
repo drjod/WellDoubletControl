@@ -29,15 +29,14 @@ TEST_P(WellDoubletTest, storage_simulation_with_ten_time_steps)
 	simulator.simulate(std::tr1::get<0>(GetParam()),  // wellDoubletControl scheme
 				std::tr1::get<1>(GetParam()),  // Q_H
 				std::tr1::get<2>(GetParam()),  // value_target
-				std::tr1::get<3>(GetParam()),  // value_threshold
-				true);  // flag_print
+				std::tr1::get<3>(GetParam()));  // value_threshold
 
 	WellDoubletCalculation result = simulator.get_wellDoubletControl()->get_result();
 
-	EXPECT_NEAR(std::tr1::get<4>(GetParam()), result.Q_H, 1.e-3 * fabs(result.Q_H));
-	EXPECT_NEAR(std::tr1::get<5>(GetParam()), result.Q_w, 1.e-3 * fabs(result.Q_w));
-	EXPECT_NEAR(std::tr1::get<6>(GetParam()), result.T1, 1.e-3 * fabs(result.T1));
-	EXPECT_EQ(std::tr1::get<7>(GetParam()), result.flag_powerrateAdapted);
+	EXPECT_NEAR(std::tr1::get<4>(GetParam()), result.powerrate(), 1.e-3 * fabs(result.powerrate()));
+	EXPECT_NEAR(std::tr1::get<5>(GetParam()), result.flowrate(), 1.e-3 * fabs(result.flowrate()));
+	EXPECT_NEAR(std::tr1::get<6>(GetParam()), result.temperature_well1(), 1.e-3 * fabs(result.temperature_well1()));
+	EXPECT_EQ(std::tr1::get<7>(GetParam()), result.powerrateAdapted());
 
 }
 
@@ -47,17 +46,26 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	// output: Q_H, Q_w, T1, flag_powerrateAdapted
 
 	// Scheme A - storing
+	std::make_tuple('A', 1.e5, 60., 0.01, // T1_target, Q_w_max
+			1.e5, 0.0, 30., false),  // target T1 not reached although flow rate is zero
 	std::make_tuple('A', 1.e6, 60., 0.01, // T1_target, Q_w_max
-			39536, 0.0097, 45., false)  // has not reached threshold
+			1.e6, 0.008, 60., false),  // target T1 reached by adapting flow rate
+	std::make_tuple('A', 2.e6, 60., 0.01, // T1_target, Q_w_max
+			1.25e6, 0.01, 60., true),  // target T1 reached by adapting power rate
 	// Scheme B - storing
-	/*std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
+	std::make_tuple('B', 1.e6, 0.01, 50., // Q_w_target, T1_max
 			1.e6, 0.01, 49.96, false),  // has not reached threshold
 	std::make_tuple('B', 1.e6, 0.01, 48., // Q_w_target, T1_max
-			9.5e5, 0.01, 48., true)  // has reached threshold
-*/
+			9.5e5, 0.01, 48., true),  // has reached threshold
+	// Scheme C - storing (same examples as for scheme A, and should give same results)
+	std::make_tuple('C', 1.e5, 50., 0.01, // DT_target, Q_w_max
+			1.e5, 0.0, 30., false)  // target T1 not reached although flow rate is zero
+	//std::make_tuple('C', 1.e6, 50., 0.01, // DT_target, Q_w_max
+	//		1.e6, 0.008, 60., false)  // target T1 reached by adapting flow rate
+	//std::make_tuple('C', 2.e6, 50., 0.01, // DT_target, Q_w_max
+	//		1.25e6, 0.01, 60., true)  // target T1 reached by adapting power rate
+
 ));
-
-
 
 
 

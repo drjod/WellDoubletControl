@@ -17,26 +17,26 @@ class FakeSimulator;
 class WellDoubletControl
 {
 protected:
+	char scheme_identifier; // 'A', 'B', or 'C'	
 	WellDoubletCalculation result;
 	double value_target, value_threshold;
 	// A: T1_target, Q_w_max 
 	// B: Q_w_target, T1_max 
-	// C: DT_target, T1_max
+	// C: DT_target, Q_w__max
+
 	bool flag_storing;  // else extracting
 
 	FakeSimulator* simulator;  // to have access to parameters
-	Comparison beyondThreshold, check_for_flowrateAdaption;
+	Comparison beyond, notReached;
 public:
 	WellDoubletControl() {}
 	virtual ~WellDoubletControl() {}
 
-	double& get_Q_H() { return result.Q_H; }
-	double& get_Q_w() { return result.Q_w; }
-	WellDoubletCalculation& get_result() { return result; }
+	const WellDoubletCalculation& get_result() const { return result; }
 	FakeSimulator* get_fakeSimulator() { return simulator; }
 
-	virtual void initialize() = 0;
-	virtual void calculate_flowrate() = 0;
+	virtual void configure() = 0;
+	virtual void provide_flowrate() = 0;
 	virtual bool check_result() = 0;
 	
 	void set_constraints(const double& _Q_H,  
@@ -50,40 +50,30 @@ public:
 				FakeSimulator* simulator);
 			// instance is created before time-stepping
 	
-	void print_temperatures();
+	void print_temperatures() const;
 
 	friend class WellDoubletCalculation;
 };
 
-class WellSchemeA : public WellDoubletControl
+class WellSchemeAC : public WellDoubletControl
 {
 public:
-	WellSchemeA(FakeSimulator* _simulator) { simulator = _simulator; }
+	WellSchemeAC(FakeSimulator* _simulator, const char _scheme_identifier)
+	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }
 
-	void initialize();
-	void calculate_flowrate();
+	void configure();
+	void provide_flowrate();
 	bool check_result();
 };
 
 class WellSchemeB : public WellDoubletControl
 {
 public:
-	WellSchemeB(FakeSimulator* _simulator) { simulator = _simulator; }
+	WellSchemeB(FakeSimulator* _simulator, const char _scheme_identifier)
+	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }
 
-	void initialize();
-	void calculate_flowrate();
-	bool check_result();
-};
-
-
-class WellSchemeC : public WellDoubletControl
-{
-
-public:
-	WellSchemeC(FakeSimulator* _simulator) { simulator = _simulator; }
-
-	void initialize();
-	void calculate_flowrate();
+	void configure();
+	void provide_flowrate();
 	bool check_result();
 };
 

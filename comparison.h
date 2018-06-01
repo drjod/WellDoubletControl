@@ -5,7 +5,7 @@ struct Smaller;
 
 struct ComparisonMethod
 {
-        virtual bool execute(const double& x, const double& y) = 0;
+        virtual bool execute(const double& x, const double& y) const = 0;
         virtual ~ComparisonMethod() {}
 };
 
@@ -13,7 +13,7 @@ struct Greater : public ComparisonMethod
 {
         double epsilon;
         Greater(const double& _epsilon) { epsilon = _epsilon; }
-        bool execute(const double& x, const double& y) 
+        bool execute(const double& x, const double& y) const 
         { return x > y + epsilon; }
 };
 
@@ -21,7 +21,7 @@ struct Smaller : public ComparisonMethod
 {
         double epsilon;
         Smaller(const double& _epsilon) { epsilon = _epsilon; }
-        bool execute(const double& x, const double& y) 
+        bool execute(const double& x, const double& y) const
         { return x < y - epsilon; }
 };
 
@@ -63,7 +63,7 @@ struct Comparison
 			delete method;
 	}
 
-        bool operator()(const double& x, const double& y)
+        bool operator()(const double& x, const double& y) const
         {
                 return method->execute(x, y);
         }

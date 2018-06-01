@@ -4,59 +4,55 @@
 
 
 
-void WellDoubletCalculation::adapt_powerrate(WellSchemeA* scheme)
+void WellDoubletCalculation::adapt_powerrate(WellSchemeAC* scheme)
 {
-        Q_H -= Q_w * scheme->simulator->get_heatcapacity() * 1* (
-					T1 - scheme->value_target);
-        LOG("\t\t\tadapt power rate to " + std::to_string(Q_H));
+        Q_H -= Q_w * scheme->simulator->get_heatcapacity() * (
+		(this->*value_aiming_at_target)() -
+			// Scheme A: T1, Scheme C: T1 - T2 
+		scheme->value_target);
+        LOG("\t\t\tadapt power rate\t" + std::to_string(Q_H));
         flag_powerrateAdapted = true;
-
 }
 
 void WellDoubletCalculation::adapt_powerrate(WellSchemeB* scheme)
 {
         Q_H -= Q_w * scheme->simulator->get_heatcapacity() * (
                                         T1 - scheme->value_threshold);
-        LOG("\t\t\tadapt power rate to " + std::to_string(Q_H));
+        LOG("\t\t\tadapt power rate\t" + std::to_string(Q_H));
         flag_powerrateAdapted = true;
 }
 
-void WellDoubletCalculation::adapt_powerrate(WellSchemeC* scheme)
+void WellDoubletCalculation::estimate_flowrate(WellSchemeAC* scheme)
 {
-        Q_H = Q_w * scheme->simulator->get_heatcapacity() * (
-                                        scheme->value_threshold - T2);
-        LOG("\t\t\tadapt power rate to " + std::to_string(Q_H));
-        flag_powerrateAdapted = true;
-
-}
-
-void WellDoubletCalculation::calculate_flowrate(WellSchemeA* scheme)
-{
-if(flag_powerrateAdapted)
-return;
         if(scheme->flag_storing)
                 Q_w = fmin(Q_H / (scheme->simulator->get_heatcapacity()  *
-                        (2*scheme->value_target - T1- T2)), scheme->value_threshold);
+                        (2 * scheme->value_target - T1- T2)), scheme->value_threshold);
         else
                 Q_w = fmax(Q_H / (scheme->simulator->get_heatcapacity()  *
-                        (scheme->value_target - T2)), scheme->value_threshold);
-LOG(Q_w);
+                        (2 * scheme->value_target - T1 - T2)), scheme->value_threshold);
+        LOG("\t\t\testimate flow rate\t" + std::to_string(Q_w));
 }
 
-void WellDoubletCalculation::calculate_flowrate(WellSchemeB* scheme)
+void WellDoubletCalculation::set_flowrate(WellSchemeB* scheme)
 {
         Q_w = scheme->value_target;
+        LOG("\t\t\tset flow rate\t" + std::to_string(Q_w));
 }
 
-void WellDoubletCalculation::calculate_flowrate(WellSchemeC* scheme)
+void WellDoubletCalculation::adapt_flowrate(WellSchemeAC* scheme)
 {
-        // no range check
+	double delta = 4 * (T1 - scheme->value_target) / scheme->value_target;
+
         if(scheme->flag_storing)
-                Q_w = Q_H / (scheme->simulator->get_heatcapacity() *
-                                                        scheme->value_target);
-        else
-                Q_w = Q_H / (scheme->simulator->get_heatcapacity() *
-                                                        scheme->value_target);
+	{
+		Q_w = fmin( Q_w * (1 + delta), scheme->value_threshold);
+		Q_w = fmax(Q_w, 0.); // else extracting
+	}
+	else
+	{
+		Q_w = fmax( Q_w * (1 + delta), scheme->value_threshold);
+		Q_w = fmin(Q_w, 0.);  // else storing
+	}
+
+        LOG("\t\t\tadapt flow rate\t\t" + std::to_string(Q_w));
 }
-
-
