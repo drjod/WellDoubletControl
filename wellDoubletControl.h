@@ -2,7 +2,6 @@
 #define WELLDOUBLETCONTROL_H
 
 #include<string>
-#include <math.h>
 #include <iostream>
 #include "comparison.h"
 #include "fakeSimulator.h"
@@ -39,12 +38,12 @@ protected:
 	iterationState_t iterationState;
 
 	FakeSimulator* simulator;  // to have access to parameters
-	Comparison beyond, notReached;
+	wdc::Comparison beyond, notReached;
 public:
 	WellDoubletControl() {}
 	virtual ~WellDoubletControl() {}
 
-	iterationState_t get_iterationState() { return iterationState; }
+	const iterationState_t& get_iterationState() const { return iterationState; }
 	const WellDoubletControl::result_t& get_result() const { return result; }
 
 	virtual void configure() = 0;

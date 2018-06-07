@@ -1,6 +1,11 @@
 #include "wellDoubletControl.h"
 #include <stdexcept>
 
+#define ACCURACY_FLOWRATE_TARGET 1.e-5
+#define ACCURACY_TEMPERATURE_THRESHOLD 1.e-2
+#define FLOWRATE_ADAPTION_FACTOR 4
+
+
 void WellDoubletControl::print_temperatures() const
 {
 	std::cout << "\t\t\tT1: " << result.T1 << " - T2: " <<
@@ -88,14 +93,18 @@ void WellSchemeAC::configure()
 	if(operationType == storing)
 	{
 		LOG("\t\t\t\tfor storing");
-		beyond = Comparison(new Greater(EPSILON));
-		notReached =  Comparison(new Smaller(EPSILON));
+		beyond = wdc::Comparison(
+			new wdc::Greater(ACCURACY_TEMPERATURE_THRESHOLD));
+		notReached =  wdc::Comparison(
+			new wdc::Smaller(ACCURACY_TEMPERATURE_THRESHOLD));
 	}
 	else
 	{
 		LOG("\t\t\t\tfor extracting");
-		beyond = Comparison(new Smaller(EPSILON));
-		notReached = Comparison(new Greater(EPSILON));
+		beyond = wdc::Comparison(
+			new wdc::Smaller(ACCURACY_TEMPERATURE_THRESHOLD));
+		notReached = wdc::Comparison(
+			new wdc::Greater(ACCURACY_TEMPERATURE_THRESHOLD));
 	}
 }
 
@@ -113,8 +122,8 @@ void WellSchemeAC::evaluate_simulation_result()
 			// and flow rate Q_w already at threshold, 
 			// Q_w cannot be increased and,  therefore, 
 			// flow adaption stops
-        		if(fabs(result.Q_w - value_threshold) < 1.e-5  // for storing
-			|| fabs(result.Q_w) < 1.e-5)  // for extracting
+			if(wdc::at_maximum(result.Q_w, value_threshold,
+				ACCURACY_FLOWRATE_TARGET))
         		{  // Q_w at threshold - could not store / extract the heat
                 		iterationState = searchingPowerrate;  
                 		LOG("\t\t\tstop adapting flow rate");
@@ -130,8 +139,8 @@ void WellSchemeAC::evaluate_simulation_result()
 			// if T1 has not reached the target value
 			// although flow Q_W is zero, 
 			// flow adaption stops as well
-        		if(fabs(result.Q_w) < 1.e-5  // flow rate becomes zero (condition for storing)
-			|| fabs(result.Q_w - value_threshold) < 1.e-5)  // flow rate at threshold (condition for extracting)
+			if(wdc::at_minimum(result.Q_w, value_threshold,
+				ACCURACY_FLOWRATE_TARGET))
           		{  // could store / extract even more
                 		iterationState = converged;  
                 		LOG("\t\t\tstop adapting flow rate");
@@ -161,31 +170,37 @@ void WellSchemeAC::evaluate_simulation_result()
 
 void WellSchemeAC::set_flowrate()
 {
+	double temp = result.Q_H / (simulator->get_heatcapacity() *
+						(result.T1 - result.T2));
+
         if(operationType == WellDoubletControl::storing)
-                result.Q_w = fmin(result.Q_H / (simulator->get_heatcapacity()  *
-                        (2 * value_target - result.T1 - result.T2)), value_threshold);
-        else
-                result.Q_w = fmax(result.Q_H / (simulator->get_heatcapacity()  *
-                        (result.T1 + result.T2 - 2 * value_target)), value_threshold);
-        LOG("\t\t\testimate flow rate\t" + std::to_string(result.Q_w));
+		result.Q_w = wdc::confined(temp , 0., value_threshold);
+	else
+		result.Q_w = wdc::confined(temp, value_threshold, 0.);
+      	LOG("\t\t\testimate flow rate\t" + std::to_string(result.Q_w));
 }
 
 
 void WellSchemeAC::adapt_flowrate()
 {
-        double delta = 4. * ((this->*(this->simulation_result_aiming_at_target))() -
-                       value_target) / fabs(value_target);
+        double delta = FLOWRATE_ADAPTION_FACTOR * 
+		((this->*(this->simulation_result_aiming_at_target))() -
+				value_target);
+  	// to avoid division by zero (value_target is set each time step)
+	if(fabs(value_target) > 1.)
+		delta /= fabs(value_target);
 
         if(operationType == WellDoubletControl::storing)
-        {
-                result.Q_w = fmin(result.Q_w * (1 + delta), value_threshold);
-                result.Q_w = fmax(result.Q_w, 0.); // else extracting
+        {	// increase flowrate (fmax might be overconcerned)
+                result.Q_w = wdc::confined(result.Q_w * (1 + delta),
+							0., value_threshold);
         }
         else
-        {
-                result.Q_w = fmin(result.Q_w * (1 - delta), 0.);  // else storing
-                result.Q_w = fmax(result.Q_w, value_threshold);
+        {	// decrease absolute value of flow rate
+                result.Q_w = wdc::confined(result.Q_w * (1 - delta),
+							value_threshold, 0.);
         }
+        LOG("\t\t\tadapt flow rate to\t" + std::to_string(result.Q_w));
 }
 
 void WellSchemeAC::adapt_powerrate()
@@ -194,7 +209,7 @@ void WellSchemeAC::adapt_powerrate()
                 (this->*(this->simulation_result_aiming_at_target))() -
                         // Scheme A: T1, Scheme C: T1 - T2 
                 value_target); 
-        LOG("\t\t\tadapt power rate\t" + std::to_string(result.Q_H));
+        LOG("\t\t\tadapt power rate to\t" + std::to_string(result.Q_H));
         result.flag_powerrateAdapted = true;
 }
 
@@ -207,12 +222,12 @@ void WellSchemeB::configure()
 	if(operationType == storing)
 	{
 		LOG("\t\t\tconfigure scheme B for storing");
-		beyond = Comparison(new Greater(0.));
+		beyond = wdc::Comparison(new wdc::Greater(0.));
 	}
 	else
 	{
 		LOG("\t\t\tconfigure scheme B for extracting");
-		beyond = Comparison(new Smaller(0.));
+		beyond = wdc::Comparison(new wdc::Smaller(0.));
 	}
 }
 
@@ -220,8 +235,6 @@ void WellSchemeB::evaluate_simulation_result()
 {
 	if(beyond(result.T1, value_threshold))
 	{
-		if(fabs(result.T1 - value_threshold) < EPSILON)
-			iterationState = converged;
 		adapt_powerrate();
 	}
 	else

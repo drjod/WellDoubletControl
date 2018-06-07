@@ -1,4 +1,11 @@
+#ifndef WDCUTILITIES_H
+#define WDCUTILITIES_H
+
 #include <iostream>
+#include <cmath>
+
+namespace wdc
+{
 
 struct Greater;
 struct Smaller;
@@ -70,3 +77,36 @@ struct Comparison
 
 };
 
+
+inline double confined(const double& value, const double& lower_limit, const double& upper_limit)
+{
+	return fmin(fmax(value, lower_limit), upper_limit);
+}
+
+
+/*
+threshold > 0 (storing) : looks if value at threshold (or larger)
+threshold < 0 (extracting): looks if value at zero (or larger)
+*/
+inline bool at_maximum(const double& value, const double& threshold, const double &accuracy)
+{
+	return (threshold>0) ? value > threshold - accuracy : value > -accuracy;
+}
+
+
+/*
+threshold > 0 (storing) : looks if value at zero (or smaller)
+threshold < 0 (extracting): looks if value at threshold (or smaller)
+*/
+inline bool at_minimum(const double& value, const double& threshold, const double &accuracy)
+{
+	return (threshold>0) ? value < accuracy : value < threshold + accuracy;
+}
+
+
+
+
+}  // end namespace wdc
+
+
+#endif

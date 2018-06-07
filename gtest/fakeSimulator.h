@@ -7,10 +7,31 @@
 
 
 class WellDoubletControl;
-class WellDoubletCalculation;
+
+struct Simulator
+{
+	virtual ~Simulator() {}
+	
+	virtual const double& get_heatcapacity() const = 0;
+	virtual const bool& get_flag_iterate() const = 0;
+	virtual const WellDoubletControl* get_wellDoubletControl() const = 0;
+	virtual void configure_wellDoubletControl(const char& selection) = 0;
+
+        virtual void initialize_temperatures() = 0;
+	virtual void calculate_temperatures(
+				const double& Q_H, const double& Q_w) = 0;
+        virtual void update_temperatures() = 0;
+
+	virtual void execute_timeStep(
+				const double& Q_H, const double& value_target,
+				const double& value_threshold) = 0;
+	virtual void simulate(
+		const char& wellDoubletControlScheme, const double& Q_H, 
+		const double& value_target, const double& value_threshold) = 0;
+};
 
 
-class FakeSimulator
+class FakeSimulator : public Simulator
 {
         double temperatures[GRID_SIZE];  //  temperatures at warm well 
 				// (distance increases with node number) 
@@ -28,15 +49,14 @@ public:
 			// a wellDoubletControl instance is constructed 
 			// (and destructed) each time step
 
-	double& get_heatcapacity() { return heatcapacity; }
-	bool& get_flag_iterate() { return flag_iterate; }
-	WellDoubletControl* get_wellDoubletControl()
+	const double& get_heatcapacity() const { return heatcapacity; }
+	const bool& get_flag_iterate() const { return flag_iterate; }
+	const WellDoubletControl* get_wellDoubletControl() const
 	{ return wellDoubletControl; }
-
 	void configure_wellDoubletControl(const char& selection);
 				// is done at the begiining of each time step
-        void initialize_temperatures();
 
+        void initialize_temperatures();
 	void calculate_temperatures(const double& Q_H, const double& Q_w);
 						// solves advection equation
         void update_temperatures();
@@ -48,7 +68,8 @@ public:
 		// values are passed to execute_timeStep(), they are constant
 		// now but will be timestep-dependent in a real application
 
-	friend std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator);
+	friend std::ostream& operator<<(std::ostream& stream,
+					const FakeSimulator& simulator);
 };
 
 

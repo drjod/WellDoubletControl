@@ -21,8 +21,4 @@
 #define NUMBER_OF_TIMESTEPS 10
 #define TIMESTEPSIZE 1.e2
 
-
-// accuracy in target calculations
-#define EPSILON 1.e-2
-
 #endif

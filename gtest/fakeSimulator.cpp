@@ -101,7 +101,6 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 	}
 }
 
-
 std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator)
 {
 	stream << "\t\tATES temperatures: ";
@@ -109,4 +108,3 @@ std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator)
                 stream << simulator.temperatures[i] << " ";
         return stream;
 }
-
