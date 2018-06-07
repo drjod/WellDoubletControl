@@ -16,6 +16,10 @@ class FakeSimulator;
 
 class WellDoubletControl
 {
+public:
+	enum iterationState_t {searchingFlowrate, searchingPowerrate, converged};
+	// schemes A/C: first flow rate is adapted, then powerrate
+	// scheme B: only powerrate is adapted
 protected:
 	char scheme_identifier; // 'A', 'B', or 'C'	
 	WellDoubletCalculation result;
@@ -24,7 +28,8 @@ protected:
 	// B: Q_w_target, T1_max 
 	// C: DT_target, Q_w__max
 
-	bool flag_storing;  // else extracting
+	enum {storing, extracting} operationType;
+	iterationState_t iterationState;
 
 	FakeSimulator* simulator;  // to have access to parameters
 	Comparison beyond, notReached;
@@ -32,12 +37,13 @@ public:
 	WellDoubletControl() {}
 	virtual ~WellDoubletControl() {}
 
+	iterationState_t get_iterationState() { return iterationState; }
 	const WellDoubletCalculation& get_result() const { return result; }
 	FakeSimulator* get_fakeSimulator() { return simulator; }
 
 	virtual void configure() = 0;
 	virtual void provide_flowrate() = 0;
-	virtual bool evaluate_simulation_result() = 0;
+	virtual void evaluate_simulation_result() = 0;
 	
 	void set_constraints(const double& _Q_H,  
 		const double& _value_target, const double& _value_threshold);
@@ -58,23 +64,23 @@ public:
 class WellSchemeAC : public WellDoubletControl
 {
 public:
-	WellSchemeAC(FakeSimulator* _simulator, const char _scheme_identifier)
+	WellSchemeAC(FakeSimulator* _simulator, const char& _scheme_identifier)
 	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }
 
 	void configure();
 	void provide_flowrate();
-	bool evaluate_simulation_result();
+	void evaluate_simulation_result();
 };
 
 class WellSchemeB : public WellDoubletControl
 {
 public:
-	WellSchemeB(FakeSimulator* _simulator, const char _scheme_identifier)
+	WellSchemeB(FakeSimulator* _simulator, const char& _scheme_identifier)
 	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }
 
 	void configure();
 	void provide_flowrate();
-	bool evaluate_simulation_result();
+	void evaluate_simulation_result();
 };
 
 #endif

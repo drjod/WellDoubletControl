@@ -13,25 +13,43 @@ void FakeSimulator::configure_wellDoubletControl(const char& selection)
 
 void FakeSimulator::initialize_temperatures()
 {
-	temperatures_old[0] = TEMPERATURE_2;
+	LOG("\t\tset initialize ATES temperature");
+	// temperature decreases linearly
+	temperatures_old[NODE_NUMBER_T2] = INITIAL_TEMPERATURE_LOW;  // cold weöö
 	for(int i=1; i<GRID_SIZE; i++)
-		temperatures_old[i] = 10;
+	{
+		//temperatures_old[i] = INITIAL_TEMPERATURE_LOW; 
+		temperatures_old[i] = INITIAL_TEMPERATURE_HIGH +
+			(INITIAL_TEMPERATURE_LOW - INITIAL_TEMPERATURE_HIGH) * i / (GRID_SIZE-1);
+	}
+	for(int i=0; i<GRID_SIZE; i++)
+		std::cout << temperatures_old[i] << " ";
 }
 
 void FakeSimulator::calculate_temperatures(const double& Q_H, 
 						const double& Q_w)
 {
 	LOG("\t\tcalculate ");
-	
-	temperatures[0] = TEMPERATURE_2;
+	int ii, upwind_node;
+
+	// update inlet node
+	if(Q_w>0)
+		temperatures[0] = temperatures_old[0];
+	else
+		temperatures[GRID_SIZE-1] = temperatures_old[GRID_SIZE-1];
+
 	for(int i=1; i<GRID_SIZE; i++)
 	{  // grid spacing is one meter (just 1 D - not radial)
-		temperatures[i] = temperatures_old[i] +
-			TIMESTEPSIZE * Q_w * POROSITY *
-			(temperatures_old[i-1] - temperatures_old[i]);
+		// calculate temperatures on [1, GRIDSIZE) for Q_w > 0 (injection)
+		// and on [0, GRIDSIZE-1) for Q_w < 0 (extraction)
+		if(Q_w >0) { ii=i; upwind_node=ii-1; }
+		else { ii=i-1; upwind_node = ii+1; }
+		temperatures[ii] = temperatures_old[ii] +
+			TIMESTEPSIZE * fabs(Q_w) * POROSITY *
+			(temperatures_old[upwind_node] - temperatures_old[ii]);
 	}
-	temperatures[NODE_NUMBER_T1] += TIMESTEPSIZE * Q_H / heatcapacity;
 
+	temperatures[NODE_NUMBER_T1] += TIMESTEPSIZE * Q_H / heatcapacity;
 }
 
 void FakeSimulator::update_temperatures()
@@ -55,10 +73,12 @@ void FakeSimulator::execute_timeStep(const double& Q_H,
 		calculate_temperatures(wellDoubletControl->get_result().powerrate(),
 					wellDoubletControl->get_result().flowrate());
 		wellDoubletControl->set_temperatures(
-				temperatures[NODE_NUMBER_T1], TEMPERATURE_2);
+				temperatures[NODE_NUMBER_T1], INITIAL_TEMPERATURE_LOW);//temperatures[NODE_NUMBER_T2]);
 
-		flag_iterate = wellDoubletControl->evaluate_simulation_result();
-		if(!flag_iterate) { LOG("\tconverged"); break; }
+		wellDoubletControl->evaluate_simulation_result();
+
+		if(wellDoubletControl->get_iterationState() == WellDoubletControl::converged)
+			{ LOG("\tconverged"); break; }
 	}
 
 

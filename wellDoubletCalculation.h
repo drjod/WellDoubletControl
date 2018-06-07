@@ -14,11 +14,7 @@ class WellDoubletCalculation
 				// (schemes A and C) or set as input (Scheme B)
         double T1, T2;  // temperature at well 1 ("warm well") 
 			// and 2 ("cold well") obtained from simulation results
-
         bool flag_powerrateAdapted;  // says if storage meets requirement or not
-        bool flag_flowrateAdapted;  // to let adaption of power rate follow the
-			// adaption of the flow rate if this did not succeed
-
 public:
 	double (WellDoubletCalculation::*simulation_result_aiming_at_target)
 									() const;
@@ -32,7 +28,7 @@ public:
 
 	double temperature_well1() const { return T1; }  // to evaluate target
 	const double& temperature_well2() const { return T2; }
-	double temperature_difference() const { return T1 - T2; }  
+	double temperature_difference_well1well2() const { return T1 - T2; }  
 							// to evaluate target
 
 	const bool& powerrateAdapted() const { return flag_powerrateAdapted; }

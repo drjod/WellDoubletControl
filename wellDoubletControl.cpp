@@ -13,24 +13,22 @@ void WellDoubletControl::set_constraints(const double& _Q_H,
 {
 	// set input values for well doublet control, e.g. from file
 	result.Q_H = _Q_H;  // stored (Q_H>0) or extracted (Q_H<0) heat
+	result.flag_powerrateAdapted = false;
 
 	value_target = _value_target;
 	value_threshold = _value_threshold;
-
-	result.flag_powerrateAdapted = false;
-	result.flag_flowrateAdapted = false;
-
+	
 	if(_Q_H > 0.)
 	{
 		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) <<
 			+ " - storing");
-		flag_storing = true;
+		operationType = storing;
 	}
 	else
 	{
 		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) <<
 			+ " - extracting");
-		flag_storing = false;
+		operationType = extracting;
 	}
 	configure();  // the scheme-dependent stuff (comparison functions)
 }
@@ -72,6 +70,8 @@ WellDoubletControl* WellDoubletControl::createWellDoubletControl(
 
 void WellSchemeAC::configure()
 {
+	iterationState = searchingFlowrate;
+
 	if(scheme_identifier == 'A')  // T1 at warm well
 	{
 		LOG("\t\t\tconfigure scheme A");
@@ -82,9 +82,10 @@ void WellSchemeAC::configure()
 	{
 		LOG("\t\t\tconfigure scheme C");
 		result.simulation_result_aiming_at_target =
-			&WellDoubletCalculation::temperature_difference;
+			&WellDoubletCalculation::temperature_difference_well1well2;
 	}
-	if(flag_storing)
+
+	if(operationType == storing)
 	{
 		LOG("\t\t\t\tfor storing");
 		beyond = Comparison(new Greater(EPSILON));
@@ -100,13 +101,13 @@ void WellSchemeAC::configure()
 
 void WellSchemeAC::provide_flowrate() { result.estimate_flowrate(this); }
 
-bool WellSchemeAC::evaluate_simulation_result()
+void WellSchemeAC::evaluate_simulation_result()
 {
 	double simulation_result_aiming_at_target = (result.*(
 				result.simulation_result_aiming_at_target))();
 	// first adapt flow rate if temperature 1 at warm well is not
 	// at target value
-	if(!result.flag_flowrateAdapted)
+	if(iterationState == searchingFlowrate)
 	{
 		if(beyond(simulation_result_aiming_at_target, value_target))
 		{
@@ -114,15 +115,15 @@ bool WellSchemeAC::evaluate_simulation_result()
 			// and flow rate Q_w already at threshold, 
 			// Q_w cannot be increased and,  therefore, 
 			// flow adaption stops
-        		if(fabs(result.Q_w - value_threshold) < 1.e-5)
-        		{  // Q_w at threshold
-                		result.flag_flowrateAdapted = true;  
+        		if(fabs(result.Q_w - value_threshold) < 1.e-5  // for storing
+			|| fabs(result.Q_w) < 1.e-5)  // for extracting
+        		{  // Q_w at threshold - could not store / extract the heat
+                		iterationState = searchingPowerrate;  
                 		LOG("\t\t\tstop adapting flow rate");
 			}
 			else
 			{
 				result.adapt_flowrate(this);
-				return true;
 			}
 		}
 		else if(notReached(
@@ -131,35 +132,41 @@ bool WellSchemeAC::evaluate_simulation_result()
 			// if T1 has not reached the target value
 			// although flow Q_W is zero, 
 			// flow adaption stops as well
-        		if(fabs(result.Q_w) < 1.e-5)  // flow rate becomes zero 
-        		{
-                		result.flag_flowrateAdapted = true;  
+        		if(fabs(result.Q_w) < 1.e-5  // flow rate becomes zero (condition for storing)
+			|| fabs(result.Q_w - value_threshold) < 1.e-5)  // flow rate at threshold (condition for extracting)
+          		{  // could store / extract even more
+                		iterationState = converged;  
                 		LOG("\t\t\tstop adapting flow rate");
 			}
 			else
 			{
 				result.adapt_flowrate(this);
-				return true;
 			}
 		}
-		// else T1 at threshold - converged (function will return false)
-	}
-	
-	// then adapt power rate if temperature 1 at warm well is beyond target
-	// (and flow rate adaption as not succedded before)
-	if(beyond(simulation_result_aiming_at_target, value_target))
-	{
-		result.adapt_powerrate(this);
-		return true;
+		else
+			iterationState = converged;
 	}
 
-	return false;  // means converged
+	if(iterationState == searchingPowerrate)
+	{	
+		// then adapt power rate if temperature 1 at warm well is beyond target
+		// (and flow rate adaption as not succedded before)
+		if(beyond(simulation_result_aiming_at_target, value_target))
+		{
+			result.adapt_powerrate(this);
+		}
+		else
+			iterationState = converged;
+	}
+
 }
 
 
 void WellSchemeB::configure()
 {
-	if(flag_storing)
+	iterationState = searchingPowerrate;  // not used right now
+
+	if(operationType == storing)
 	{
 		LOG("\t\t\tconfigure scheme B for storing");
 		beyond = Comparison(new Greater(0.));
@@ -173,14 +180,14 @@ void WellSchemeB::configure()
 
 void WellSchemeB::provide_flowrate() { result.set_flowrate(this); }
 
-bool WellSchemeB::evaluate_simulation_result()
+void WellSchemeB::evaluate_simulation_result()
 {
-	if(result.flag_powerrateAdapted || beyond(result.T1, value_threshold))
+	if(beyond(result.T1, value_threshold))
 	{
 		if(fabs(result.T1 - value_threshold) < EPSILON)
-			return false;  // stop iterating
+			iterationState = converged;
 		result.adapt_powerrate(this);
-		return true;
 	}
-	return false;
+	else
+		iterationState = converged;
 }
