@@ -75,14 +75,14 @@ void WellSchemeAC::configure()
 	if(scheme_identifier == 'A')  // T1 at warm well
 	{
 		LOG("\t\t\tconfigure scheme A");
-		result.simulation_result_aiming_at_target =
-			&WellDoubletCalculation::temperature_well1;
+		simulation_result_aiming_at_target =
+			&WellSchemeAC::temperature_well1;
 	} 
 	else if(scheme_identifier == 'C')  // T1 - T2
 	{
 		LOG("\t\t\tconfigure scheme C");
-		result.simulation_result_aiming_at_target =
-			&WellDoubletCalculation::temperature_difference_well1well2;
+		simulation_result_aiming_at_target =
+			&WellSchemeAC::temperature_difference_well1well2;
 	}
 
 	if(operationType == storing)
@@ -99,12 +99,10 @@ void WellSchemeAC::configure()
 	}
 }
 
-void WellSchemeAC::provide_flowrate() { result.estimate_flowrate(this); }
-
 void WellSchemeAC::evaluate_simulation_result()
 {
-	double simulation_result_aiming_at_target = (result.*(
-				result.simulation_result_aiming_at_target))();
+	double simulation_result_aiming_at_target = 
+		(this->*(this->simulation_result_aiming_at_target))();
 	// first adapt flow rate if temperature 1 at warm well is not
 	// at target value
 	if(iterationState == searchingFlowrate)
@@ -123,7 +121,7 @@ void WellSchemeAC::evaluate_simulation_result()
 			}
 			else
 			{
-				result.adapt_flowrate(this);
+				adapt_flowrate();
 			}
 		}
 		else if(notReached(
@@ -140,7 +138,7 @@ void WellSchemeAC::evaluate_simulation_result()
 			}
 			else
 			{
-				result.adapt_flowrate(this);
+				adapt_flowrate();
 			}
 		}
 		else
@@ -153,7 +151,7 @@ void WellSchemeAC::evaluate_simulation_result()
 		// (and flow rate adaption as not succedded before)
 		if(beyond(simulation_result_aiming_at_target, value_target))
 		{
-			result.adapt_powerrate(this);
+			adapt_powerrate();
 		}
 		else
 			iterationState = converged;
@@ -161,6 +159,46 @@ void WellSchemeAC::evaluate_simulation_result()
 
 }
 
+void WellSchemeAC::set_flowrate()
+{
+        if(operationType == WellDoubletControl::storing)
+                result.Q_w = fmin(result.Q_H / (simulator->get_heatcapacity()  *
+                        (2 * value_target - result.T1 - result.T2)), value_threshold);
+        else
+                result.Q_w = fmax(result.Q_H / (simulator->get_heatcapacity()  *
+                        (result.T1 + result.T2 - 2 * value_target)), value_threshold);
+        LOG("\t\t\testimate flow rate\t" + std::to_string(result.Q_w));
+}
+
+
+void WellSchemeAC::adapt_flowrate()
+{
+        double delta = 4. * ((this->*(this->simulation_result_aiming_at_target))() -
+                       value_target) / fabs(value_target);
+
+        if(operationType == WellDoubletControl::storing)
+        {
+                result.Q_w = fmin(result.Q_w * (1 + delta), value_threshold);
+                result.Q_w = fmax(result.Q_w, 0.); // else extracting
+        }
+        else
+        {
+                result.Q_w = fmin(result.Q_w * (1 - delta), 0.);  // else storing
+                result.Q_w = fmax(result.Q_w, value_threshold);
+        }
+}
+
+void WellSchemeAC::adapt_powerrate()
+{
+        result.Q_H -= fabs(result.Q_w) * simulator->get_heatcapacity() * (
+                (this->*(this->simulation_result_aiming_at_target))() -
+                        // Scheme A: T1, Scheme C: T1 - T2 
+                value_target); 
+        LOG("\t\t\tadapt power rate\t" + std::to_string(result.Q_H));
+        result.flag_powerrateAdapted = true;
+}
+
+ 
 
 void WellSchemeB::configure()
 {
@@ -178,16 +216,32 @@ void WellSchemeB::configure()
 	}
 }
 
-void WellSchemeB::provide_flowrate() { result.set_flowrate(this); }
-
 void WellSchemeB::evaluate_simulation_result()
 {
 	if(beyond(result.T1, value_threshold))
 	{
 		if(fabs(result.T1 - value_threshold) < EPSILON)
 			iterationState = converged;
-		result.adapt_powerrate(this);
+		adapt_powerrate();
 	}
 	else
 		iterationState = converged;
 }
+
+
+void WellSchemeB::set_flowrate()
+{
+        result.Q_w = value_target;
+        LOG("\t\t\tset flow rate\t" + std::to_string(result.Q_w));
+}
+
+
+void WellSchemeB::adapt_powerrate()
+{
+        result.Q_H -= fabs(result.Q_w) * simulator->get_heatcapacity() * (
+                                        result.T1 - value_threshold);
+        LOG("\t\t\tadapt power rate\t" + std::to_string(result.Q_H));
+        result.flag_powerrateAdapted = true;
+}
+
+

@@ -31,12 +31,12 @@ TEST_P(WellDoubletTest, storage_simulation_with_ten_time_steps)
 				std::get<2>(GetParam()),  // value_target
 				std::get<3>(GetParam()));  // value_threshold
 
-	WellDoubletCalculation result = simulator.get_wellDoubletControl()->get_result();
+	WellDoubletControl::result_t result = simulator.get_wellDoubletControl()->get_result();
 
-	EXPECT_NEAR(std::get<4>(GetParam()), result.powerrate(), 1.e-3 * fabs(result.powerrate()));
-	EXPECT_NEAR(std::get<5>(GetParam()), result.flowrate(), 1.e-3 * fabs(result.flowrate()));
-	EXPECT_NEAR(std::get<6>(GetParam()), result.temperature_well1(), 1.e-3 * fabs(result.temperature_well1()));
-	EXPECT_EQ(std::get<7>(GetParam()), result.powerrateAdapted());
+	EXPECT_NEAR(std::get<4>(GetParam()), result.Q_H, 1.e-3 * fabs(result.Q_H));
+	EXPECT_NEAR(std::get<5>(GetParam()), result.Q_w, 1.e-3 * fabs(result.Q_w));
+	EXPECT_NEAR(std::get<6>(GetParam()), result.T1, 1.e-3 * fabs(result.T1));
+	EXPECT_EQ(std::get<7>(GetParam()), result.flag_powerrateAdapted);
 
 }
 
