@@ -1,6 +1,11 @@
 #ifndef WELLDOUBLETCONTROL_H
 #define WELLDOUBLETCONTROL_H
 
+#define ACCURACY_FLOWRATE_TARGET 1.e-4
+#define ACCURACY_TEMPERATURE_THRESHOLD 1.e-2
+#define FLOWRATE_ADAPTION_FACTOR 1
+
+
 #include<string>
 #include <iostream>
 #include "comparison.h"
@@ -13,7 +18,8 @@ class FakeSimulator;
 class WellDoubletControl
 {
 public:
-	enum iterationState_t {searchingFlowrate, searchingPowerrate, converged};
+	enum iterationState_t {searchingFlowrate, 
+				searchingPowerrate, converged};
 	// schemes A/C: first flow rate is adapted, then powerrate
 	// scheme B: only powerrate is adapted
 	struct result_t
@@ -73,6 +79,8 @@ class WellSchemeAC : public WellDoubletControl
 	// to differentiate between scheme A and C
         // scheme A: pointing at temperature_Well1(),
         // scheme C: pointing at temperature_difference(),
+	double factor, deltaTsign_stored;
+	// to store values from the last interation when adapting flowrate
 public:
 	WellSchemeAC(FakeSimulator* _simulator, const char& _scheme_identifier)
 	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }

@@ -13,15 +13,13 @@ void FakeSimulator::configure_wellDoubletControl(const char& selection)
 
 void FakeSimulator::initialize_temperatures()
 {
-	LOG("\t\tset initialize ATES temperature");
-	// temperature decreases linearly
-	temperatures_old[NODE_NUMBER_T2] = INITIAL_TEMPERATURE_LOW;  // cold weöö
-	for(int i=1; i<GRID_SIZE; i++)
+	LOG("\t\initialize ATES");
+	for(int i=0; i<GRID_SIZE; i++)
 	{
-		//temperatures_old[i] = INITIAL_TEMPERATURE_LOW; 
-		temperatures_old[i] = INITIAL_TEMPERATURE_HIGH +
-			(INITIAL_TEMPERATURE_LOW - INITIAL_TEMPERATURE_HIGH) * i / (GRID_SIZE-1);
+		temperatures_old[i] = WELL1_TEMPERATURE_INITIAL; 
 	}
+
+	LOG("\t\tATES temperature: ");
 	for(int i=0; i<GRID_SIZE; i++)
 		std::cout << temperatures_old[i] << " ";
 }
@@ -30,26 +28,22 @@ void FakeSimulator::calculate_temperatures(const double& Q_H,
 						const double& Q_w)
 {
 	LOG("\t\tcalculate ");
-	int ii, upwind_node;
 
 	// update inlet node
-	if(Q_w>0)
-		temperatures[0] = temperatures_old[0];
-	else
-		temperatures[GRID_SIZE-1] = temperatures_old[GRID_SIZE-1];
+	temperatures[0] = temperatures_old[0];
 
 	for(int i=1; i<GRID_SIZE; i++)
 	{  // grid spacing is one meter (just 1 D - not radial)
-		// calculate temperatures on [1, GRIDSIZE) for Q_w > 0 (injection)
-		// and on [0, GRIDSIZE-1) for Q_w < 0 (extraction)
-		if(Q_w >0) { ii=i; upwind_node=ii-1; }
-		else { ii=i-1; upwind_node = ii+1; }
-		temperatures[ii] = temperatures_old[ii] +
+		// calculate temperatures on [1, GRIDSIZE)
+		// use always fabs(Q_w) > 0 (for injection and inextraction)
+		// (temperature at well 2 is fixed)
+		temperatures[i] = temperatures_old[i] +
 			TIMESTEPSIZE * fabs(Q_w) * POROSITY *
-			(temperatures_old[upwind_node] - temperatures_old[ii]);
+			(temperatures_old[i-1] - temperatures_old[i]);
 	}
 
-	temperatures[NODE_NUMBER_T1] += TIMESTEPSIZE * Q_H / heatcapacity;
+	// add source term
+	temperatures[WELL1_NODE_NUMBER] += TIMESTEPSIZE * Q_H / heatcapacity;
 }
 
 void FakeSimulator::update_temperatures()
@@ -72,8 +66,8 @@ void FakeSimulator::execute_timeStep(const double& Q_H,
 
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
 					wellDoubletControl->get_result().Q_w);
-		wellDoubletControl->set_temperatures(
-				temperatures[NODE_NUMBER_T1], INITIAL_TEMPERATURE_LOW);//temperatures[NODE_NUMBER_T2]);
+		wellDoubletControl->set_temperatures(temperatures[WELL1_NODE_NUMBER], 
+							WELL2_TEMPERATURE);
 
 		wellDoubletControl->evaluate_simulation_result();
 
@@ -103,7 +97,7 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 
 std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator)
 {
-	stream << "\t\tATES temperatures: ";
+	stream << "\t\tATES temperature: ";
         for(int i=0; i<GRID_SIZE; ++i)
                 stream << simulator.temperatures[i] << " ";
         return stream;

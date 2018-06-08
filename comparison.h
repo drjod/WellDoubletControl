@@ -104,6 +104,11 @@ inline bool at_minimum(const double& value, const double& threshold, const doubl
 }
 
 
+inline int sign(double x)
+{
+	return (x>0.) ? 1 : ((x<0.) ? -1 : 0);
+}
+
 
 
 }  // end namespace wdc
