@@ -9,9 +9,12 @@ void WellDoubletControl::print_temperatures() const
 }
 
 
-void WellDoubletControl::set_constraints(const double& _Q_H,
-	const double& _value_target, const double& _value_threshold) 
+void WellDoubletControl::configure(const double& _Q_H,
+	const double& _value_target, const double& _value_threshold,
+	const double& _T1, const double& _T2, 
+	const double& _heatCapacity1, const double& _heatCapacity2) 
 {
+	set_heatFluxes(_T1, _T2, _heatCapacity1, _heatCapacity2);
 	// set input values for well doublet control, e.g. from file
 	result.Q_H = _Q_H;  // stored (Q_H>0) or extracted (Q_H<0) heat
 	result.flag_powerrateAdapted = false;
@@ -33,38 +36,43 @@ void WellDoubletControl::set_constraints(const double& _Q_H,
 	}
 
 	// the scheme-dependent stuff
-	configure();  // iterationState & comparison functions 
+	configureScheme();  // iterationState & comparison functions 
 			//for temperature target (A, C), temperature constraint (B)
 	set_flowrate();  // an estimation for scheme A and a target for scheme B
 }
 
-void WellDoubletControl::set_temperatures(const double& _T1, const double& _T2)  
+void WellDoubletControl::set_heatFluxes(const double& _T1, const double& _T2, 
+			const double& _heatCapacity1, const double& _heatCapacity2) 
 {
 	result.T1 = _T1;  // warm well
 	result.T2 = _T2;  // cold well
-	LOG("\t\t\tset temperatures\tT1: " + std::to_string(_T1) +
-					" - T2: " + std::to_string(_T2));
+	heatCapacity1 = _heatCapacity1;  // warm well
+	heatCapacity2 = _heatCapacity2;  // cold well
+	LOG("\t\t\tset temperatures\twarm: " + std::to_string(_T1) +
+					"\t\tcold: " + std::to_string(_T2));
+	LOG("\t\t\tset heat capacities\twarm: " +
+		std::to_string(_heatCapacity1) + "\tcold: " +
+		std::to_string(_heatCapacity2));
 }
 
 
 
-WellDoubletControl* WellDoubletControl::createWellDoubletControl(
-				const char& selection, FakeSimulator* simulator)
+WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
+				const char& selection)
 {
 	switch(selection)
 	{
 		case  'A':
-			return new WellSchemeAC(simulator, 'A');
+			return new WellSchemeAC('A');
 			break;
 		case  'B':
-			return new WellSchemeB(simulator, 'B');
+			return new WellSchemeB('B');
 			break;
 		case  'C':
-			return new WellSchemeAC(simulator, 'C');
+			return new WellSchemeAC('C');
 			break;
 		default:
 			throw std::runtime_error("Well scheme not set");
-			break;
 	}
 	return 0;
 }
@@ -73,7 +81,7 @@ WellDoubletControl* WellDoubletControl::createWellDoubletControl(
 //////////////////////////////////////////////////////////
 
 
-void WellSchemeAC::configure()
+void WellSchemeAC::configureScheme()
 {
 	iterationState = searchingFlowrate;
 	deltaTsign_stored = 0, factor = 0.1;  
@@ -111,9 +119,11 @@ void WellSchemeAC::configure()
 }
 
 const WellDoubletControl::iterationState_t& 
-	WellSchemeAC::evaluate_simulation_result(const double& _T1, const double& _T2)
+	WellSchemeAC::evaluate_simulation_result(
+		const double& _T1, const double& _T2,
+		const double& _heatCapacity1, const double& _heatCapacity2)
 {
-	set_temperatures(_T1, _T2);
+	set_heatFluxes(_T1, _T2, _heatCapacity1, _heatCapacity2);
  
 	double simulation_result_aiming_at_target = 
 		(this->*(this->simulation_result_aiming_at_target))();
@@ -168,9 +178,11 @@ const WellDoubletControl::iterationState_t&
 void WellSchemeAC::set_flowrate()
 {
 	double temp, denominator = 
-		simulator->get_heatcapacity() * (result.T1 - result.T2);
+		heatCapacity1 * result.T1 - heatCapacity2 * result.T2;
 
-	if(fabs(result.T1 - result.T2) < 1.e-10)  // valgrind gives error
+	if(fabs(result.T1 - result.T2) < 1.e-10)
+		// valgrind gives error 
+		// (concerned that it might be not initialized)
 	{
 		std::cout << "WARNING - well 1 is not warmer than well 2\n";
 		if(operationType == storing)
@@ -226,7 +238,7 @@ void WellSchemeAC::adapt_flowrate()
 
 void WellSchemeAC::adapt_powerrate()
 {
-        result.Q_H -= fabs(result.Q_w) * simulator->get_heatcapacity() * (
+        result.Q_H -= fabs(result.Q_w) * heatCapacity1 * (
                 (this->*(this->simulation_result_aiming_at_target))() -
                         // Scheme A: T1, Scheme C: T1 - T2 
                 value_target); 
@@ -234,7 +246,7 @@ void WellSchemeAC::adapt_powerrate()
         result.flag_powerrateAdapted = true;
 }
 
-void WellSchemeB::configure()
+void WellSchemeB::configureScheme()
 {
 	iterationState = searchingPowerrate;  // not used right now
 
@@ -251,9 +263,10 @@ void WellSchemeB::configure()
 }
 
 const WellDoubletControl::iterationState_t& WellSchemeB::evaluate_simulation_result(
-				const double& _T1, const double& _T2)
+		const double& _T1, const double& _T2,
+		const double& _heatCapacity1, const double& _heatCapacity2)
 {
-	set_temperatures(_T1, _T2);
+	set_heatFluxes(_T1, _T2, _heatCapacity1, _heatCapacity2);
 
 	if(beyond(result.T1, value_threshold))
 	{
@@ -275,7 +288,7 @@ void WellSchemeB::set_flowrate()
 
 void WellSchemeB::adapt_powerrate()
 {
-        result.Q_H -= fabs(result.Q_w) * simulator->get_heatcapacity() * (
+        result.Q_H -= fabs(result.Q_w) * heatCapacity1 * (
                                         result.T1 - value_threshold);
         LOG("\t\t\tadapt power rate\t" + std::to_string(result.Q_H));
         result.flag_powerrateAdapted = true;

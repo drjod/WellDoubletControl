@@ -12,8 +12,6 @@
 #include "fakeSimulator.h"
 #include "parameter.h"
 
-class FakeSimulator;
-
 
 class WellDoubletControl
 {
@@ -33,6 +31,8 @@ public:
 	};
 protected:
 	result_t result;
+	double heatCapacity1, heatCapacity2;  // Schemes A/B: 1: at warm well, 2: ar cold well
+				// Scheme C: 1 for both wells
 
 	char scheme_identifier; // 'A', 'B', or 'C'	
 	double value_target, value_threshold;
@@ -43,10 +43,10 @@ protected:
 	enum {storing, extracting} operationType;
 	iterationState_t iterationState;
 
-	FakeSimulator* simulator;  // to have access to parameters
 	wdc::Comparison beyond, notReached;
 
-	void set_temperatures(const double& _T1, const double& _T2);  
+	void set_heatFluxes(const double& _T1, const double& _T2,
+				const double& _heatCapacity1, const double& _heatCapacity2);  
 					// called in evaluate_simulation_result
 	virtual void set_flowrate() = 0;
 public:
@@ -55,17 +55,19 @@ public:
 
 	const WellDoubletControl::result_t& get_result() const { return result; }
 
-	virtual void configure() = 0;
+	virtual void configureScheme() = 0;
 	virtual const iterationState_t& evaluate_simulation_result(
-				const double& _T1, const double& _T2) = 0;
+				const double& _T1, const double& _T2,
+				const double& _heatCapacity1, const double& _heatCapacity2) = 0;
 	
-	void set_constraints(const double& _Q_H,  
-		const double& _value_target, const double& _value_threshold);
+	void configure(const double& _Q_H,  
+		const double& _value_target, const double& _value_threshold,
+		const double& _T1, const double& _T2,
+		const double& _heatCapacity1, const double& _heatCapacity2);
 			// constraints are set at beginning of time step
 
-	static WellDoubletControl* createWellDoubletControl(
-				const char& selection, 
-				FakeSimulator* simulator);
+	static WellDoubletControl* create_wellDoubletControl(
+				const char& selection);
 			// instance is created before time-stepping
 	
 	void print_temperatures() const;
@@ -85,13 +87,14 @@ class WellSchemeAC : public WellDoubletControl
         void set_flowrate();
        	void adapt_flowrate();
         void adapt_powerrate();
-	void configure();
+	void configureScheme();
 public:
-	WellSchemeAC(FakeSimulator* _simulator, const char& _scheme_identifier)
-	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }
+	WellSchemeAC(const char& _scheme_identifier)
+	{ scheme_identifier = _scheme_identifier; }
 
 	const iterationState_t& evaluate_simulation_result(
-				const double& _T1, const double& _T2);
+				const double& _T1, const double& _T2,
+				const double& _heatCapacity1, const double& _heatCapacity2);
 
 };
 
@@ -99,13 +102,14 @@ class WellSchemeB : public WellDoubletControl
 {
         void set_flowrate();
         void adapt_powerrate();
-	void configure();
+	void configureScheme();
 public:
-	WellSchemeB(FakeSimulator* _simulator, const char& _scheme_identifier)
-	{ simulator = _simulator; scheme_identifier = _scheme_identifier; }
+	WellSchemeB(const char& _scheme_identifier)
+	{ scheme_identifier = _scheme_identifier; }
 
 	const iterationState_t& evaluate_simulation_result(
-				const double& _T1, const double& _T2);
+				const double& _T1, const double& _T2,
+				const double& _heatCapacity1, const double& _heatCapacity2);
 
 };
 

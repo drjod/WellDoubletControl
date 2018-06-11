@@ -2,26 +2,25 @@
 #include <string>
 
 
-void FakeSimulator::configure_wellDoubletControl(const char& selection)
+void FakeSimulator::create_wellDoubletControl(const char& selection)
 {
 	if(wellDoubletControl != 0)
 		delete wellDoubletControl;  // from last timestep
-	wellDoubletControl = WellDoubletControl::createWellDoubletControl(
-							selection, this);
+	wellDoubletControl = 
+		WellDoubletControl::create_wellDoubletControl(selection);
 }
 
 
 void FakeSimulator::initialize_temperatures()
 {
-	LOG("\t\initialize ATES");
+	LOG("\t\initialize simulation");
 	for(int i=0; i<GRID_SIZE; i++)
 	{
 		temperatures_old[i] = WELL1_TEMPERATURE_INITIAL; 
+		temperatures[i] = WELL1_TEMPERATURE_INITIAL; 
+					// as input for WellDoubletControl
 	}
-
-	LOG("\t\tATES temperature: ");
-	for(int i=0; i<GRID_SIZE; i++)
-		std::cout << temperatures_old[i] << " ";
+	LOG(*this);
 }
 
 void FakeSimulator::calculate_temperatures(const double& Q_H, 
@@ -43,7 +42,7 @@ void FakeSimulator::calculate_temperatures(const double& Q_H,
 	}
 
 	// add source term
-	temperatures[WELL1_NODE_NUMBER] += TIMESTEPSIZE * Q_H / heatcapacity;
+	temperatures[WELL1_NODE_NUMBER] += TIMESTEPSIZE * Q_H / HEAT_CAPACITY;
 }
 
 void FakeSimulator::update_temperatures()
@@ -52,21 +51,23 @@ void FakeSimulator::update_temperatures()
 		temperatures_old[i] = temperatures[i];
 }
 
-void FakeSimulator::execute_timeStep(const double& Q_H,
-		const double& value_target, const double& value_threshold)
+void FakeSimulator::execute_timeStep(
+	const char& wellDoubletControlScheme, const double& Q_H, 
+	const double& value_target, const double& value_threshold)
 {
-	wellDoubletControl->set_constraints(Q_H,
-			value_target, value_threshold);
+	create_wellDoubletControl(wellDoubletControlScheme);
+	wellDoubletControl->configure(Q_H, value_target, value_threshold,
+			temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE,
+			HEAT_CAPACITY, HEAT_CAPACITY); 
 
 	for(int i=0; i<NUMBER_OF_ITERATIONS; i++)
 	{
 		LOG("\titeration " + std::to_string(i));
-
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
 					wellDoubletControl->get_result().Q_w);
-
 		if(wellDoubletControl->evaluate_simulation_result(
-				temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE) 
+				temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE,
+				HEAT_CAPACITY, HEAT_CAPACITY) 
 					== WellDoubletControl::converged)
 			{ LOG("\tconverged"); break; }
 	}
@@ -80,9 +81,9 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 
 	for(int i=0; i<NUMBER_OF_TIMESTEPS; i++)
 	{       
-		configure_wellDoubletControl(wellDoubletControlScheme);
 		LOG("time step " + std::to_string(i));
-		execute_timeStep(Q_H, value_target, value_threshold);
+		execute_timeStep(wellDoubletControlScheme,
+				Q_H, value_target, value_threshold);
 		
 		LOG(*this);
 		update_temperatures();

@@ -12,10 +12,9 @@ struct Simulator
 {
 	virtual ~Simulator() {}
 	
-	virtual const double& get_heatcapacity() const = 0;
 	virtual const bool& get_flag_iterate() const = 0;
 	virtual const WellDoubletControl* get_wellDoubletControl() const = 0;
-	virtual void configure_wellDoubletControl(const char& selection) = 0;
+	virtual void create_wellDoubletControl(const char& selection) = 0;
 
         virtual void initialize_temperatures() = 0;
 	virtual void calculate_temperatures(
@@ -23,8 +22,8 @@ struct Simulator
         virtual void update_temperatures() = 0;
 
 	virtual void execute_timeStep(
-				const double& Q_H, const double& value_target,
-				const double& value_threshold) = 0;
+		const char& wellDoubletControlScheme, const double& Q_H, 
+		const double& value_target, const double& value_threshold) = 0;
 	virtual void simulate(
 		const char& wellDoubletControlScheme, const double& Q_H, 
 		const double& value_target, const double& value_threshold) = 0;
@@ -36,24 +35,21 @@ class FakeSimulator : public Simulator
         double temperatures[GRID_SIZE];  //  temperatures at warm well 
 				// (distance increases with node number) 
         double temperatures_old[GRID_SIZE];
-	double heatcapacity;  // stands for parameters accecible to 
-				// wellDoubletControl
 
         WellDoubletControl* wellDoubletControl;
         bool flag_iterate;  // to convert threshold value into a target value
 
 public:
-	FakeSimulator() : heatcapacity(HEATCAPACITY), wellDoubletControl(0) {}
+	FakeSimulator() : wellDoubletControl(0) {}
 	~FakeSimulator() 
 	{ if(wellDoubletControl != 0) delete wellDoubletControl; }
 			// a wellDoubletControl instance is constructed 
 			// (and destructed) each time step
 
-	const double& get_heatcapacity() const { return heatcapacity; }
 	const bool& get_flag_iterate() const { return flag_iterate; }
 	const WellDoubletControl* get_wellDoubletControl() const
 	{ return wellDoubletControl; }
-	void configure_wellDoubletControl(const char& selection);
+	void create_wellDoubletControl(const char& selection);
 				// is done at the begiining of each time step
 
         void initialize_temperatures();
@@ -61,8 +57,8 @@ public:
 						// solves advection equation
         void update_temperatures();
 
-	void execute_timeStep(const double& Q_H, const double& value_target,
-		const double& value_threshold);
+	void execute_timeStep(const char& wellDoubletControlScheme, const double& Q_H, 
+		const double& value_target, const double& value_threshold);
 	void simulate(const char& wellDoubletControlScheme, const double& Q_H, 
 		const double& value_target, const double& value_threshold);
 		// values are passed to execute_timeStep(), they are constant
