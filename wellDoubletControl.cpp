@@ -31,7 +31,11 @@ void WellDoubletControl::set_constraints(const double& _Q_H,
 			+ " - extracting");
 		operationType = extracting;
 	}
-	configure();  // the scheme-dependent stuff (comparison functions)
+
+	// the scheme-dependent stuff
+	configure();  // iterationState & comparison functions 
+			//for temperature target (A, C), temperature constraint (B)
+	set_flowrate();  // an estimation for scheme A and a target for scheme B
 }
 
 void WellDoubletControl::set_temperatures(const double& _T1, const double& _T2)  
@@ -106,8 +110,11 @@ void WellSchemeAC::configure()
 	}
 }
 
-void WellSchemeAC::evaluate_simulation_result()
+const WellDoubletControl::iterationState_t& 
+	WellSchemeAC::evaluate_simulation_result(const double& _T1, const double& _T2)
 {
+	set_temperatures(_T1, _T2);
+ 
 	double simulation_result_aiming_at_target = 
 		(this->*(this->simulation_result_aiming_at_target))();
 	// first adapt flow rate if temperature 1 at warm well is not
@@ -154,6 +161,8 @@ void WellSchemeAC::evaluate_simulation_result()
 		else
 			iterationState = converged;
 	}
+
+	return iterationState;
 }
 
 void WellSchemeAC::set_flowrate()
@@ -161,7 +170,7 @@ void WellSchemeAC::set_flowrate()
 	double temp, denominator = 
 		simulator->get_heatcapacity() * (result.T1 - result.T2);
 
-	if(fabs(result.T1 - result.T2) < 1.e-10)
+	if(fabs(result.T1 - result.T2) < 1.e-10)  // valgrind gives error
 	{
 		std::cout << "WARNING - well 1 is not warmer than well 2\n";
 		if(operationType == storing)
@@ -175,16 +184,18 @@ void WellSchemeAC::set_flowrate()
 				<< std::endl;
 			result.Q_w = value_threshold;
 		}
-		return;
 	}
-
-	temp = result.Q_H / denominator;
-
-        if(operationType == WellDoubletControl::storing)
-		result.Q_w = wdc::confined(temp , 0., value_threshold);
 	else
-		result.Q_w = wdc::confined(temp, value_threshold, 0.);
-      	LOG("\t\t\testimate flow rate\t" + std::to_string(result.Q_w));
+	{
+		temp = result.Q_H / denominator;
+
+        	if(operationType == WellDoubletControl::storing)
+			result.Q_w = wdc::confined(temp , 0., value_threshold);
+		else
+			result.Q_w = wdc::confined(temp, value_threshold, 0.);
+      		
+		LOG("\t\t\testimate flow rate\t" + std::to_string(result.Q_w));
+	}
 }
 
 void WellSchemeAC::adapt_flowrate()
@@ -239,14 +250,19 @@ void WellSchemeB::configure()
 	}
 }
 
-void WellSchemeB::evaluate_simulation_result()
+const WellDoubletControl::iterationState_t& WellSchemeB::evaluate_simulation_result(
+				const double& _T1, const double& _T2)
 {
+	set_temperatures(_T1, _T2);
+
 	if(beyond(result.T1, value_threshold))
 	{
 		adapt_powerrate();
 	}
 	else
 		iterationState = converged;
+
+	return iterationState;
 }
 
 

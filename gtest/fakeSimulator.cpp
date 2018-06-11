@@ -57,8 +57,6 @@ void FakeSimulator::execute_timeStep(const double& Q_H,
 {
 	wellDoubletControl->set_constraints(Q_H,
 			value_target, value_threshold);
-	wellDoubletControl->set_flowrate();  
-		// an estimation in scheme A and a target value in scheme B
 
 	for(int i=0; i<NUMBER_OF_ITERATIONS; i++)
 	{
@@ -66,16 +64,12 @@ void FakeSimulator::execute_timeStep(const double& Q_H,
 
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
 					wellDoubletControl->get_result().Q_w);
-		wellDoubletControl->set_temperatures(temperatures[WELL1_NODE_NUMBER], 
-							WELL2_TEMPERATURE);
 
-		wellDoubletControl->evaluate_simulation_result();
-
-		if(wellDoubletControl->get_iterationState() == WellDoubletControl::converged)
+		if(wellDoubletControl->evaluate_simulation_result(
+				temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE) 
+					== WellDoubletControl::converged)
 			{ LOG("\tconverged"); break; }
 	}
-
-
 }
 
 void FakeSimulator::simulate(const char& wellDoubletControlScheme,
