@@ -84,31 +84,10 @@ inline double confined(const double& value, const double& lower_limit, const dou
 }
 
 
-/*
-threshold > 0 (storing) : looks if value at threshold (or larger)
-threshold < 0 (extracting): looks if value at zero (or larger)
-*/
-inline bool at_maximum(const double& value, const double& threshold, const double &accuracy)
-{
-	return (threshold>0) ? value > threshold - accuracy : value > -accuracy;
-}
-
-
-/*
-threshold > 0 (storing) : looks if value at zero (or smaller)
-threshold < 0 (extracting): looks if value at threshold (or smaller)
-*/
-inline bool at_minimum(const double& value, const double& threshold, const double &accuracy)
-{
-	return (threshold>0) ? value < accuracy : value < threshold + accuracy;
-}
-
-
 inline int sign(double x)
 {
 	return (x>0.) ? 1 : ((x<0.) ? -1 : 0);
 }
-
 
 
 }  // end namespace wdc

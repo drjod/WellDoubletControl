@@ -116,11 +116,7 @@ void WellSchemeAC::evaluate_simulation_result()
 	{
 		if(beyond(simulation_result_aiming_at_target, value_target))
 		{
-			// storing: T_1 > T_1^threshold + epsilon
-			// extracting: T_1 < T_1^threshold - epsilon
 			if(fabs(result.Q_w - value_threshold) < ACCURACY_FLOWRATE_TARGET)
-			//if(wdc::at_maximum(result.Q_w, value_threshold,
-			//	ACCURACY_FLOWRATE_TARGET))
         		{  // cannot store / extract the heat
                 		iterationState = searchingPowerrate;  
                 		LOG("\t\t\tstop adapting flow rate");
@@ -133,11 +129,6 @@ void WellSchemeAC::evaluate_simulation_result()
 		else if(notReached(
 			simulation_result_aiming_at_target, value_target))
 		{
-			// storing: T_1 < T_1^threshold - epsilon
-			// extracting: T_1 > T_1^threshold + epsilon
-			/*if(wdc::at_minimum(result.Q_w, value_threshold,
-				ACCURACY_FLOWRATE_TARGET))
-*/
 			if(fabs(result.Q_w) < ACCURACY_FLOWRATE_TARGET)
           		{  // limited by flowrate
                 		iterationState = converged;  
