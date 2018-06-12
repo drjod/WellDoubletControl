@@ -180,8 +180,6 @@ void WellSchemeAC::set_flowrate()
 		heatCapacity1 * result.T1 - heatCapacity2 * result.T2;
 
 	if(fabs(result.T1 - result.T2) < 1.e-10)
-		// valgrind gives error 
-		// (concerned that it might be not initialized)
 	{
 		std::cout << "WARNING - well 1 is not warmer than well 2\n";
 		if(operationType == storing)
@@ -217,7 +215,7 @@ void WellSchemeAC::adapt_flowrate()
 	// avoid that T1 jumps around threshold (deltaT flips sign)
 	if(deltaTsign_stored != 0  // == 0: take initial value for factor
 			&& deltaTsign_stored != wdc::sign(deltaT))
-		factor *= 0.7;
+		factor *= FLOWRATE_ADAPTION_FACTOR;
 
 	deltaTsign_stored = wdc::sign(deltaT);
 

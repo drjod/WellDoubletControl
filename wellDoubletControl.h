@@ -4,7 +4,7 @@
 #define ACCURACY_FLOWRATE_TARGET 1.e-4
 #define ACCURACY_TEMPERATURE_THRESHOLD 1.e-2
 #define FLOWRATE_ADAPTION_FACTOR 0.7
-// Q_w = Q_w (1 +/- a (T_1 - T_1_target)) 
+// Q_w = Q_w (1 +/- a (T_1 - value_target)) 
 
 #include "comparison.h"
 
