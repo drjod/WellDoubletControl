@@ -7,10 +7,13 @@
 // Q_w = Q_w (1 +/- a (T_1 - value_target)) 
 
 #include "comparison.h"
-
+#include <string>
 
 class WellDoubletControl
 {
+	std::string name;  // for output file
+	int timeStep;
+	double simulationTime;
 public:
 	enum iterationState_t {searchingFlowrate, 
 				searchingPowerrate, converged};
@@ -45,6 +48,7 @@ protected:
 				const double& _heatCapacity1, const double& _heatCapacity2);  
 					// called in evaluate_simulation_result
 	virtual void set_flowrate() = 0;
+	void write_outputFile() const;
 public:
 	WellDoubletControl() = default;
 	virtual ~WellDoubletControl() = default;
@@ -56,7 +60,8 @@ public:
 				const double& _T1, const double& _T2,
 				const double& _heatCapacity1, const double& _heatCapacity2) = 0;
 	
-	void configure(const double& _Q_H,  
+	void configure(const char* _name, int _timeStep, double _simulationTime,
+		const double& _Q_H,  
 		const double& _value_target, const double& _value_threshold,
 		const double& _T1, const double& _T2,
 		const double& _heatCapacity1, const double& _heatCapacity2);

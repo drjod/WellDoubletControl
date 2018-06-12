@@ -2,8 +2,12 @@
 #include "parameter.h"
 #include <stdexcept>
 #include <iostream>
+#include <fstream>
+#include <iomanip>
+
 
 #define LOG(x) std::cout << x << std::endl
+
 
 void WellDoubletControl::print_temperatures() const
 {
@@ -12,11 +16,46 @@ void WellDoubletControl::print_temperatures() const
 }
 
 
-void WellDoubletControl::configure(const double& _Q_H,
+void WellDoubletControl::write_outputFile() const
+{
+	std::fstream stream;
+	std::string smiley;
+
+	if(timeStep == 0)
+	{
+		stream.open(name + std::string(".txt"), std::ios::out);
+		stream << "Time step; Simulation time t; scheme; " <<
+		"Smiley as power rate adaption identifier; Power rate Q_H; " << 
+		"Flow rate Q_w; T_1 at warm well 1; T_2 at cold well" << std::endl;
+	}
+	else
+	{
+		stream.open(name + std::string(".txt"), std::ios::out | std::ios::app);
+	}
+
+	if(result.flag_powerrateAdapted)
+		smiley = ":-(";
+	else
+		smiley = ":-)";
+
+	stream << timeStep << "\t" << simulationTime << "\t" << scheme_identifier <<
+		"\t" << smiley << "\t" << result.Q_H << "\t" << result.Q_w <<
+		"\t" << result.T1 << "\t" << result.T2 << std::endl; 
+
+	stream.close();	
+}
+
+void WellDoubletControl::configure(
+	const char* _name, int _timeStep, double _simulationTime,
+	const double& _Q_H,
 	const double& _value_target, const double& _value_threshold,
 	const double& _T1, const double& _T2, 
 	const double& _heatCapacity1, const double& _heatCapacity2) 
 {
+	name = _name;
+	timeStep = _timeStep;
+	simulationTime = _simulationTime;
+
 	set_heatFluxes(_T1, _T2, _heatCapacity1, _heatCapacity2);
 	// set input values for well doublet control, e.g. from file
 	result.Q_H = _Q_H;  // stored (Q_H>0) or extracted (Q_H<0) heat
@@ -147,8 +186,10 @@ const WellDoubletControl::iterationState_t&
 		{
 			if(fabs(result.Q_w) < ACCURACY_FLOWRATE_TARGET)
           		{  // limited by flowrate
-                		iterationState = converged;  
                 		LOG("\t\t\tstop adapting flow rate");
+                		iterationState = converged;  
+				write_outputFile();
+				LOG("\tconverged");
 			}
 			else
 			{
@@ -156,7 +197,10 @@ const WellDoubletControl::iterationState_t&
 			}
 		}
 		else  // T1 at threshold
+		{
 			iterationState = converged;
+			write_outputFile();
+		}
 	}
 
 	if(iterationState == searchingPowerrate)
@@ -168,7 +212,11 @@ const WellDoubletControl::iterationState_t&
 			adapt_powerrate();
 		}
 		else
+		{
 			iterationState = converged;
+			write_outputFile();
+			LOG("\tconverged");
+		}
 	}
 
 	return iterationState;
@@ -269,7 +317,11 @@ const WellDoubletControl::iterationState_t& WellSchemeB::evaluate_simulation_res
 		adapt_powerrate();
 	}
 	else
+	{
+		write_outputFile();
 		iterationState = converged;
+		LOG("\tconverged");
+	}
 
 	return iterationState;
 }
