@@ -3,14 +3,10 @@
 
 #define ACCURACY_FLOWRATE_TARGET 1.e-4
 #define ACCURACY_TEMPERATURE_THRESHOLD 1.e-2
-#define FLOWRATE_ADAPTION_FACTOR 1
+#define FLOWRATE_ADAPTION_FACTOR 0.7
+// Q_w = Q_w (1 +/- a (T_1 - T_1_target)) 
 
-
-#include<string>
-#include <iostream>
 #include "comparison.h"
-#include "fakeSimulator.h"
-#include "parameter.h"
 
 
 class WellDoubletControl
@@ -95,13 +91,11 @@ public:
 	const iterationState_t& evaluate_simulation_result(
 				const double& _T1, const double& _T2,
 				const double& _heatCapacity1, const double& _heatCapacity2);
-
 };
+
 
 class WellSchemeB : public WellDoubletControl
 {
-        void set_flowrate();
-        void adapt_powerrate();
 	void configureScheme();
 public:
 	WellSchemeB(const char& _scheme_identifier)
@@ -111,6 +105,8 @@ public:
 				const double& _T1, const double& _T2,
 				const double& _heatCapacity1, const double& _heatCapacity2);
 
+        void set_flowrate();
+        void adapt_powerrate();
 };
 
 #endif

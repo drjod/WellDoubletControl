@@ -1,6 +1,9 @@
 #include "wellDoubletControl.h"
+#include "parameter.h"
 #include <stdexcept>
+#include <iostream>
 
+#define LOG(x) std::cout << x << std::endl
 
 void WellDoubletControl::print_temperatures() const
 {
@@ -24,14 +27,12 @@ void WellDoubletControl::configure(const double& _Q_H,
 	
 	if(_Q_H > 0.)
 	{
-		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) <<
-			+ " - storing");
+		LOG("\t\t\tset power rate\t\t" <<_Q_H << " - storing");
 		operationType = storing;
 	}
 	else
 	{
-		LOG("\t\t\tset power rate\t\t" << std::to_string(_Q_H) <<
-			+ " - extracting");
+		LOG("\t\t\tset power rate\t\t" << _Q_H << " - extracting");
 		operationType = extracting;
 	}
 
@@ -48,11 +49,9 @@ void WellDoubletControl::set_heatFluxes(const double& _T1, const double& _T2,
 	result.T2 = _T2;  // cold well
 	heatCapacity1 = _heatCapacity1;  // warm well
 	heatCapacity2 = _heatCapacity2;  // cold well
-	LOG("\t\t\tset temperatures\twarm: " + std::to_string(_T1) +
-					"\t\tcold: " + std::to_string(_T2));
-	LOG("\t\t\tset heat capacities\twarm: " +
-		std::to_string(_heatCapacity1) + "\tcold: " +
-		std::to_string(_heatCapacity2));
+	LOG("\t\t\tset temperatures\twarm: " << _T1 << "\t\tcold: " << _T2);
+	LOG("\t\t\tset heat capacities\twarm: " << _heatCapacity1
+					<< "\tcold: " << _heatCapacity2);
 }
 
 
@@ -187,13 +186,12 @@ void WellSchemeAC::set_flowrate()
 		std::cout << "WARNING - well 1 is not warmer than well 2\n";
 		if(operationType == storing)
 		{
-			std::cout << "\tset flowrate zero" << std::endl;
+			LOG("\tset flowrate zero");
 			result.Q_w = 0.;
 		}
 		else
 		{
-			std::cout << "\tset flowrate to threshold value"
-				<< std::endl;
+			LOG("\tset flowrate to threshold value");
 			result.Q_w = value_threshold;
 		}
 	}
@@ -206,7 +204,7 @@ void WellSchemeAC::set_flowrate()
 		else
 			result.Q_w = wdc::confined(temp, value_threshold, 0.);
       		
-		LOG("\t\t\testimate flow rate\t" + std::to_string(result.Q_w));
+		LOG("\t\t\testimate flow rate\t" << result.Q_w);
 	}
 }
 
@@ -233,7 +231,7 @@ void WellSchemeAC::adapt_flowrate()
                 result.Q_w = wdc::confined(result.Q_w * (1 - factor * deltaT),
 							value_threshold, 0.);
         }
-        LOG("\t\t\tadapt flow rate to\t" + std::to_string(result.Q_w));
+        LOG("\t\t\tadapt flow rate to\t" << result.Q_w);
 }
 
 void WellSchemeAC::adapt_powerrate()
@@ -242,7 +240,7 @@ void WellSchemeAC::adapt_powerrate()
                 (this->*(this->simulation_result_aiming_at_target))() -
                         // Scheme A: T1, Scheme C: T1 - T2 
                 value_target); 
-        LOG("\t\t\tadapt power rate to\t" + std::to_string(result.Q_H));
+        LOG("\t\t\tadapt power rate to\t" << result.Q_H);
         result.flag_powerrateAdapted = true;
 }
 
@@ -282,7 +280,7 @@ const WellDoubletControl::iterationState_t& WellSchemeB::evaluate_simulation_res
 void WellSchemeB::set_flowrate()
 {
         result.Q_w = value_target;
-        LOG("\t\t\tset flow rate\t" + std::to_string(result.Q_w));
+        LOG("\t\t\tset flow rate\t" << result.Q_w);
 }
 
 
@@ -290,7 +288,7 @@ void WellSchemeB::adapt_powerrate()
 {
         result.Q_H -= fabs(result.Q_w) * heatCapacity1 * (
                                         result.T1 - value_threshold);
-        LOG("\t\t\tadapt power rate\t" + std::to_string(result.Q_H));
+        LOG("\t\t\tadapt power rate\t" << result.Q_H);
         result.flag_powerrateAdapted = true;
 }
 

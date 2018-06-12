@@ -1,6 +1,7 @@
 #include "fakeSimulator.h"
 #include <string>
 
+#define LOG(x) std::cout << x << std::endl
 
 void FakeSimulator::create_wellDoubletControl(const char& selection)
 {
@@ -13,7 +14,7 @@ void FakeSimulator::create_wellDoubletControl(const char& selection)
 
 void FakeSimulator::initialize_temperatures()
 {
-	LOG("\t\initialize simulation");
+	LOG("\tinitialize simulation");
 	for(int i=0; i<GRID_SIZE; i++)
 	{
 		temperatures_old[i] = WELL1_TEMPERATURE_INITIAL; 
@@ -62,7 +63,7 @@ void FakeSimulator::execute_timeStep(
 
 	for(int i=0; i<NUMBER_OF_ITERATIONS; i++)
 	{
-		LOG("\titeration " + std::to_string(i));
+		LOG("\titeration " << i);
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
 					wellDoubletControl->get_result().Q_w);
 		if(wellDoubletControl->evaluate_simulation_result(
@@ -81,7 +82,7 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 
 	for(int i=0; i<NUMBER_OF_TIMESTEPS; i++)
 	{       
-		LOG("time step " + std::to_string(i));
+		LOG("time step " << i);
 		execute_timeStep(wellDoubletControlScheme,
 				Q_H, value_target, value_threshold);
 		
