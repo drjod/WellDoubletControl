@@ -1,5 +1,5 @@
-makefile
-testing
+build
+
 
 # Prerequisites
 *.d

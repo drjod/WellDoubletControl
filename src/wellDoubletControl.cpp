@@ -1,12 +1,10 @@
 #include "wellDoubletControl.h"
-#include "parameter.h"
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
-
-
-#define LOG(x) std::cout << x << std::endl
+#include <utility>
+#include "wdc_config.h"
 
 
 void WellDoubletControl::print_temperatures() const
@@ -141,18 +139,18 @@ void WellSchemeAC::configureScheme()
 	if(operationType == storing)
 	{
 		LOG("\t\t\t\tfor storing");
-		beyond = wdc::Comparison(
-			new wdc::Greater(ACCURACY_TEMPERATURE_THRESHOLD));
-		notReached =  wdc::Comparison(
-			new wdc::Smaller(ACCURACY_TEMPERATURE_THRESHOLD));
+		beyond = std::move(wdc::Comparison(
+			new wdc::Greater(ACCURACY_TEMPERATURE_THRESHOLD)));
+		notReached =  std::move(wdc::Comparison(
+			new wdc::Smaller(ACCURACY_TEMPERATURE_THRESHOLD)));
 	}
 	else
 	{
 		LOG("\t\t\t\tfor extracting");
-		beyond = wdc::Comparison(
-			new wdc::Smaller(ACCURACY_TEMPERATURE_THRESHOLD));
-		notReached = wdc::Comparison(
-			new wdc::Greater(ACCURACY_TEMPERATURE_THRESHOLD));
+		beyond = std::move(wdc::Comparison(
+			new wdc::Smaller(ACCURACY_TEMPERATURE_THRESHOLD)));
+		notReached = std::move(wdc::Comparison(
+			new wdc::Greater(ACCURACY_TEMPERATURE_THRESHOLD)));
 	}
 }
 

@@ -1,7 +1,7 @@
 #include "fakeSimulator.h"
 #include <string>
+#include "wdc_config.h"
 
-#define LOG(x) std::cout << x << std::endl
 
 void FakeSimulator::create_wellDoubletControl(const char& selection)
 {
