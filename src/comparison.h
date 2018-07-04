@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <cassert>
 
 namespace wdc
 {
@@ -87,6 +88,24 @@ inline double confined(const double& value, const double& lower_limit, const dou
 inline int sign(double x)
 {
 	return (x>0.) ? 1 : ((x<0.) ? -1 : 0);
+}
+
+
+enum threshold_t{lower, upper};
+
+inline double threshold(double value, double threshold_value, double delta, threshold_t threshold)
+{
+	assert(delta != 0);
+	int sigma = (threshold == lower)? 1: -1;
+	double U = sigma * (value - threshold_value) / delta;
+
+	//std::cout << "U: " << U << std::endl;
+	if(U <= 0)
+		return 0;
+	else if(0 < U && U < 1)
+		return 0;//pow(U, 2*(1-U));
+	else
+		return 1;
 }
 
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.6)
 project(WellDoubletControl)
 set(WellDoubletControl_VERSION_MAJOR 1)
 set(WellDoubletControl_VERSION_MINOR 0)
-set(logging "logging" CACHE STRING "Used-specified option")
+set(logging 1)
 
 enable_testing()
 find_package(GTest REQUIRED)

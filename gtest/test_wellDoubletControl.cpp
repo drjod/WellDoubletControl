@@ -22,9 +22,9 @@ TEST_P(WellDoubletTest, storage_simulation_with_ten_time_steps)
 	EXPECT_NEAR(std::get<4>(GetParam()), result.Q_H,
 				RELATIVE_POWERRATE_ERROR * fabs(result.Q_H));
 	EXPECT_NEAR(std::get<5>(GetParam()), result.Q_w,
-				ACCURACY_FLOWRATE_TARGET);
+				ACCURACY_FLOWRATE);
 	EXPECT_NEAR(std::get<6>(GetParam()), result.T1,
-				ACCURACY_TEMPERATURE_THRESHOLD);
+				ACCURACY_TEMPERATURE);
 	EXPECT_EQ(std::get<7>(GetParam()), 
 				result.flag_powerrateAdapted);
 }
@@ -60,17 +60,17 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 			-5.e5, -0.01, 30., true),  // has not reached threshold
 	//// Scheme C - storing (same examples as for scheme A, and should give same results)
 	std::make_tuple('C', 1.e5, 90., 0.01, // DT_target, Q_w_max
-			1.e5, 0.0, 70., false),  // target T1 not reached although flow rate is zero
+			1.e5, 0.0, 70., false),  // target DT not reached although flow rate is zero
 	std::make_tuple('C', 1.e6, 90., 0.01, // DT_target, Q_w_max
-			1.e6, 0.008, 100., false),  // target T1 reached by adapting flow rate
+			1.e6, 0.008, 100., false),  // target DT reached by adapting flow rate
 	std::make_tuple('C', 2.e6, 90., 0.01,  // DT_target, Q_w_max
-			1.25e6, 0.01, 100., true),  // target T1 reached by adapting power rate
+			1.25e6, 0.01, 100., true),  // target DT reached by adapting power rate
 	// Scheme C - extracting
-	std::make_tuple('C', -1.e5, 10., -0.01, // T1_target, Q_w_min
-			-1.e5, 0., 30., false),  // target T1 not reached although flow rate is at threshold
-	std::make_tuple('C', -5.e5, 10., -0.01,  // T1_target, Q_w_min
-			-5.e5, -0.00666, 20., false),  // target T1 not reached by adapting flow rate
-	std::make_tuple('C', -1.e6, 10., -0.01,  // T1_target, Q_w_min
-			-7.5e5, -0.01, 20., true)  // target T1 reached by adapting flow rate
+	std::make_tuple('C', -1.e5, 10., -0.01, // DT_target, Q_w_min
+			-1.e5, 0., 30., false),  // target DT not reached although flow rate is at threshold
+	std::make_tuple('C', -5.e5, 10., -0.01,  // DT_target, Q_w_min
+			-5.e5, -0.00666, 20., false),  // target DT not reached by adapting flow rate
+	std::make_tuple('C', -1.e6, 10., -0.01,  // DT_target, Q_w_min
+			-7.5e5, -0.01, 20., true)  // target DT reached by adapting flow rate
 ));
 

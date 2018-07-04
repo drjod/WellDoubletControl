@@ -13,8 +13,9 @@
 #define WELL1_NODE_NUMBER 5
 
 // numerics
-#define NUMBER_OF_ITERATIONS 10
+#define MAX_NUMBER_OF_ITERATIONS 200
 #define NUMBER_OF_TIMESTEPS 10
 #define TIMESTEPSIZE 1.e2
+#define ACCURACY 0.001
 
 #endif

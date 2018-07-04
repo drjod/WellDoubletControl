@@ -20,6 +20,7 @@ struct Simulator
 	virtual void calculate_temperatures(
 				const double& Q_H, const double& Q_w) = 0;
         virtual void update_temperatures() = 0;
+	virtual double calculate_error() = 0;
 
 	virtual void execute_timeStep(
 		const char& wellDoubletControlScheme, const double& Q_H, 
@@ -32,17 +33,17 @@ struct Simulator
 
 class FakeSimulator : public Simulator
 {
-        double temperatures[GRID_SIZE];  //  temperatures at warm well 
-				// (distance increases with node number) 
-        double temperatures_old[GRID_SIZE];
+        double temperatures[GRID_SIZE]; 
+        double temperatures_previousIteration[GRID_SIZE];  // to calculate error 
+        double temperatures_previousTimestep[GRID_SIZE];
 
         WellDoubletControl* wellDoubletControl;
         bool flag_iterate;  // to convert threshold value into a target value
 
 public:
-	FakeSimulator() : wellDoubletControl(0) {}
+	FakeSimulator() : wellDoubletControl(nullptr) {}
 	~FakeSimulator() 
-	{ if(wellDoubletControl != 0) delete wellDoubletControl; }
+	{ if(wellDoubletControl != nullptr) delete wellDoubletControl; }
 			// a wellDoubletControl instance is constructed 
 			// (and destructed) each time step
 
@@ -56,6 +57,7 @@ public:
 	void calculate_temperatures(const double& Q_H, const double& Q_w);
 						// solves advection equation
         void update_temperatures();
+	double calculate_error();
 
 	void execute_timeStep(const char& wellDoubletControlScheme, const double& Q_H, 
 		const double& value_target, const double& value_threshold);
@@ -63,6 +65,7 @@ public:
 		const double& value_target, const double& value_threshold);
 		// values are passed to execute_timeStep(), they are constant
 		// now but will be timestep-dependent in a real application
+	template <typename T> void log_file(T toLog);
 
 	friend std::ostream& operator<<(std::ostream& stream,
 					const FakeSimulator& simulator);
