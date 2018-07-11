@@ -1,22 +1,21 @@
 #ifndef WELLDOUBLETCONTROL_H
 #define WELLDOUBLETCONTROL_H
 
-#define Q_W_MIN 1e-8
-// absolute value - iteration may fail if zero is taken
 #define THRESHOLD_DELTA_FACTOR_WELL2 0.01
 // wells are switched of if temperature at cold well2 get
 // close to temperature at warm well 1, i.e. temperature at well 2 exceeds
 // threshold_value *(1 - THRESHOLD_DELTA_FACTOR_WELL2)
-#define POWERRATE_ADAPTION_FACTOR 0.1
+#define POWERRATE_ADAPTION_FACTOR 0.5
 // used in schemes A/C - try using 1 to reduce number of iterations
-#define FLOWRATE_ADAPTION_FACTOR 0.1
+#define FLOWRATE_ADAPTION_FACTOR .9
 // used in schemes A/C - it is modified during iteration with a mutable variable
-// Q_w = Q_w (1 +/- a (T_1 - value_target)) 
-
+// Q_w = Q_w (1 +/- a (T_1 - value_target) / (T1 - T2)) for scheme A 
+// it is multiplied with itself, if a threshold is hit
+// therefore: DO NOT USE 1 as value
 
 #define ACCURACY_FLOWRATE 1.e-5
-// used fpr comparison with threshold and zero
-#define ACCURACY_TEMPERATURE 1.e-2
+// used for comparison with threshold and zero, it is also minimum flowrate
+#define ACCURACY_TEMPERATURE 1.e-1
 // used for thresholds
 
 #include "comparison.h"
@@ -35,12 +34,6 @@ public:
         	bool flag_powerrateAdapted;  // says if storage meets requirement or not
 	};
 protected:
-	//enum iterationState_t {searchingFlowrate, 
-	//			searchingPowerrate, converged} iterationState;
-	// schemes A/C: first flow rate is adapted, then powerrate
-	// scheme B: only powerrate is adapted
-	// state converged not used right now - convergence is checked by caller of WellDoubletControl
-
 	result_t result;
 	double heatCapacity1, heatCapacity2;  // Schemes A/B: 1: at warm well, 2: ar cold well
 				// Scheme C: 1 for both wells
@@ -83,7 +76,9 @@ public:
 	
 	void print_temperatures() const;
 	const char& get_schemeIdentifier() const { return scheme_identifier; }
+	virtual bool converged(double _T1, double accuracy) const = 0;
 };
+
 
 class WellSchemeAC : public WellDoubletControl
 {
@@ -100,12 +95,14 @@ class WellSchemeAC : public WellDoubletControl
        	void adapt_flowrate();
         void adapt_powerrate();
 	void configureScheme();
+	bool flag_converged; // for the case that target cannot be reached by adapting flow rate
 public:
 	WellSchemeAC(const char& _scheme_identifier)
 	{ scheme_identifier = _scheme_identifier; }
 
 	void evaluate_simulation_result(const double& _T1, const double& _T2,
 			const double& _heatCapacity1, const double& _heatCapacity2);
+	bool converged(double _T1, double accuracy) const { return (fabs(_T1 - value_target) < accuracy || flag_converged); }
 };
 
 
@@ -121,6 +118,8 @@ public:
 
         void set_flowrate();
         void adapt_powerrate();
+	bool converged(double _T1, double accuracy) const { return false; }
+		// convergence exclusively decided by simulator
 };
 
 #endif

@@ -73,8 +73,9 @@ void FakeSimulator::execute_timeStep(
 			temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE,
 			HEAT_CAPACITY, HEAT_CAPACITY);
 		
-		if(calculate_error() < ACCURACY)
-			break;  // error from temperature calculation by simulator 
+		if(i > MIN_NUMBER_OF_ITERATIONS && (calculate_error() < ACCURACY ||
+			wellDoubletControl->converged(temperatures[WELL1_NODE_NUMBER], ACCURACY)))
+				break;
 	}
 	log_file("\tIterations: " + std::to_string(i));
 }

@@ -50,7 +50,7 @@ void WellDoubletControl::set_heatFluxes(const double& _T1, const double& _T2,
 {
 	if(std::isnan(_T1) || std::isnan(_T2))
 		throw std::runtime_error(
-			"WellDoubletControl: Got nan in temperatures from simulator");
+			"WellDoubletControl: Simulator gave nan in temperatures");
 	
 	result.T1 = _T1;  // warm well
 	result.T2 = _T2;  // cold well
@@ -88,7 +88,6 @@ WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
 void WellSchemeAC::configureScheme()
 {
 	deltaTsign_stored = 0, flowrate_adaption_factor = FLOWRATE_ADAPTION_FACTOR;  
-		// initialization - for flowrate adaption
 
 	if(scheme_identifier == 'A')  // T1 at warm well
 	{
@@ -126,6 +125,7 @@ void WellSchemeAC::evaluate_simulation_result(
 		const double& _heatCapacity1, const double& _heatCapacity2)
 {
 	set_heatFluxes(_T1, _T2, _heatCapacity1, _heatCapacity2);
+	flag_converged = false;  // for flowrate adaption
  
 	double simulation_result_aiming_at_target = 
 		(this->*(this->simulation_result_aiming_at_target))();
@@ -151,9 +151,14 @@ void WellSchemeAC::evaluate_simulation_result(
 		{
 			if(fabs(result.Q_w) > ACCURACY_FLOWRATE)
 				adapt_flowrate();
-			// else converged
+			else
+			{
+				std::cout << "converged\n";
+				flag_converged = true;
+					// cannot adapt flowrate further
+					// (and powerrate is too low)
+			}
 		}
-		// else  converged, T1 at threshold
 	}
 
 	if(result.flag_powerrateAdapted)
@@ -164,11 +169,13 @@ void WellSchemeAC::evaluate_simulation_result(
 void WellSchemeAC::set_flowrate()
 {
 	double temp, denominator = 
-		heatCapacity1 * result.T1 - heatCapacity2 * result.T2;
+	(scheme_identifier == 'A') ?
+		heatCapacity1 * value_target - heatCapacity2 * result.T2 : 
+		heatCapacity1 * value_target;  // scheme C - !!!!!takes same capacity from well1 for both wells
 
 	if(fabs(denominator) < DBL_MIN)
 	{
-		temp = Q_W_MIN;
+		temp = ACCURACY_FLOWRATE;
 	}
 	else
 	{
@@ -188,8 +195,8 @@ void WellSchemeAC::set_flowrate()
 	}
 
 	result.Q_w = (operationType == WellDoubletControl::storing) ?
-		wdc::confined(temp , Q_W_MIN, value_threshold) :
-		wdc::confined(temp, value_threshold, Q_W_MIN);
+		wdc::confined(temp , ACCURACY_FLOWRATE, value_threshold) :
+		wdc::confined(temp, value_threshold, ACCURACY_FLOWRATE);
       	
 	if(std::isnan(result.Q_w))  // no check for -nan and inf
 		throw std::runtime_error("WellDoubletControl: nan when setting Q_w");	
@@ -200,14 +207,21 @@ void WellSchemeAC::set_flowrate()
 void WellSchemeAC::adapt_flowrate()
 {
 	double deltaT =  
-		((this->*(this->simulation_result_aiming_at_target))() -
-				value_target);
+		(this->*(this->simulation_result_aiming_at_target))() -
+				value_target;
   
+	if(scheme_identifier == 'A')
+		deltaT /= std::max(result.T1 - result.T2, 1.);
+	else
+		deltaT /= (this->*(this->simulation_result_aiming_at_target))();
+	
 	// decreases flowrate_adaption_factor to avoid that T1 jumps 
 	// around threshold (deltaT flips sign)
 	if(deltaTsign_stored != 0  // == 0: take initial value for factor
 			&& deltaTsign_stored != wdc::sign(deltaT))
-		flowrate_adaption_factor *= FLOWRATE_ADAPTION_FACTOR;
+		flowrate_adaption_factor = (FLOWRATE_ADAPTION_FACTOR == 1)?
+			flowrate_adaption_factor * 0.9 :
+			flowrate_adaption_factor * FLOWRATE_ADAPTION_FACTOR;
 
 	deltaTsign_stored = wdc::sign(deltaT);
 
@@ -226,10 +240,10 @@ void WellSchemeAC::adapt_flowrate()
 	result.Q_w = (operationType == WellDoubletControl::storing) ?
 			wdc::confined(well2_impact_factor * result.Q_w *
 				(1 + flowrate_adaption_factor * deltaT),
-						Q_W_MIN, value_threshold) :
+						ACCURACY_FLOWRATE, value_threshold) :
 			wdc::confined(well2_impact_factor * result.Q_w *
 				(1 - flowrate_adaption_factor * deltaT),
-						value_threshold, -Q_W_MIN);
+						value_threshold, -ACCURACY_FLOWRATE);
 	
 	if(std::isnan(result.Q_w))
 		throw std::runtime_error(

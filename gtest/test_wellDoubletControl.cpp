@@ -22,9 +22,9 @@ TEST_P(WellDoubletTest, storage_simulation_with_ten_time_steps)
 	EXPECT_NEAR(std::get<4>(GetParam()), result.Q_H,
 				RELATIVE_POWERRATE_ERROR * fabs(result.Q_H));
 	EXPECT_NEAR(std::get<5>(GetParam()), result.Q_w,
-				ACCURACY_FLOWRATE);
+				ACCURACY_FLOWRATE*10);
 	EXPECT_NEAR(std::get<6>(GetParam()), result.T1,
-				ACCURACY_TEMPERATURE);
+				ACCURACY_TEMPERATURE*10);
 	EXPECT_EQ(std::get<7>(GetParam()), 
 				result.flag_powerrateAdapted);
 }
@@ -72,5 +72,6 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 			-5.e5, -0.00666, 20., false),  // target DT not reached by adapting flow rate
 	std::make_tuple('C', -1.e6, 10., -0.01,  // DT_target, Q_w_min
 			-7.5e5, -0.01, 20., true)  // target DT reached by adapting flow rate
+
 ));
 
