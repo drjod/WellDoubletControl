@@ -1,13 +1,13 @@
 #ifndef WELLDOUBLETCONTROL_H
 #define WELLDOUBLETCONTROL_H
 
-#define THRESHOLD_DELTA_FACTOR_WELL2 0.01
+#define THRESHOLD_DELTA_WELL2 10.
 // wells are switched of if temperature at cold well2 get
 // close to temperature at warm well 1, i.e. temperature at well 2 exceeds
 // threshold_value *(1 - THRESHOLD_DELTA_FACTOR_WELL2)
-#define POWERRATE_ADAPTION_FACTOR 0.5
+#define POWERRATE_ADAPTION_FACTOR 0.9
 // used in schemes A/C - try using 1 to reduce number of iterations
-#define FLOWRATE_ADAPTION_FACTOR .9
+#define FLOWRATE_ADAPTION_FACTOR .5
 // used in schemes A/C - it is modified during iteration with a mutable variable
 // Q_w = Q_w (1 +/- a (T_1 - value_target) / (T1 - T2)) for scheme A 
 // it is multiplied with itself, if a threshold is hit
@@ -118,7 +118,7 @@ public:
 
         void set_flowrate();
         void adapt_powerrate();
-	bool converged(double _T1, double accuracy) const { return false; }
+	bool converged(double, double) const { return false; }
 		// convergence exclusively decided by simulator
 };
 

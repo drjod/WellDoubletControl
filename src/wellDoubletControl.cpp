@@ -48,9 +48,9 @@ void WellDoubletControl::configure(
 void WellDoubletControl::set_heatFluxes(const double& _T1, const double& _T2, 
 			const double& _heatCapacity1, const double& _heatCapacity2) 
 {
-	if(std::isnan(_T1) || std::isnan(_T2))
-		throw std::runtime_error(
-			"WellDoubletControl: Simulator gave nan in temperatures");
+	//if(std::isnan(_T1) || std::isnan(_T2))
+	//	throw std::runtime_error(
+	//		"WellDoubletControl: Simulator gave nan in temperatures");
 	
 	result.T1 = _T1;  // warm well
 	result.T2 = _T2;  // cold well
@@ -76,7 +76,7 @@ WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
 			return new WellSchemeAC('C');
 			break;
 		default:
-			throw std::runtime_error("Well scheme not set");
+			;//throw std::runtime_error("Well scheme not set");
 	}
 	return 0;
 }
@@ -180,17 +180,19 @@ void WellSchemeAC::set_flowrate()
 	else
 	{
 		temp = result.Q_H / denominator;
-		double well2_impact_factor = (operationType == storing) ?
+		double well2_impact_factor = wdc::threshold(result.T2, value_target,
+			THRESHOLD_DELTA_WELL2, wdc::upper);
+		/*double well2_impact_factor = (operationType == storing) ?
 			wdc::threshold(result.T2, value_target,
 			std::fabs(value_target)*THRESHOLD_DELTA_FACTOR_WELL2,
 			wdc::upper) : 1.;	// temperature at cold well 2 
-					// should not reach threshold of warm well 1
+		*/			// should not reach threshold of warm well 1
 		if(well2_impact_factor < 1)
 		{
 			LOG("\tRegulate wells");
 			temp *= well2_impact_factor;
 			result.Q_H *= well2_impact_factor;
-			result.flag_powerrateAdapted = true;
+			//result.flag_powerrateAdapted = true;
 		}
 	}
 
@@ -198,8 +200,8 @@ void WellSchemeAC::set_flowrate()
 		wdc::confined(temp , ACCURACY_FLOWRATE, value_threshold) :
 		wdc::confined(temp, value_threshold, ACCURACY_FLOWRATE);
       	
-	if(std::isnan(result.Q_w))  // no check for -nan and inf
-		throw std::runtime_error("WellDoubletControl: nan when setting Q_w");	
+	//if(std::isnan(result.Q_w))  // no check for -nan and inf
+	//	throw std::runtime_error("WellDoubletControl: nan when setting Q_w");	
         LOG("\t\t\tset flow rate\t" << result.Q_w);
 
 }
@@ -225,10 +227,9 @@ void WellSchemeAC::adapt_flowrate()
 
 	deltaTsign_stored = wdc::sign(deltaT);
 
-	double well2_impact_factor = (operationType == storing) ?
-			wdc::threshold(result.T2, value_target,
-			value_target*THRESHOLD_DELTA_FACTOR_WELL2,
-			wdc::upper) : 1.;	// temperature at cold well 2 
+	double well2_impact_factor = wdc::threshold(result.T2, value_target,
+			THRESHOLD_DELTA_WELL2, wdc::upper);
+				// temperature at cold well 2 
 				// should not reach threshold of warm well 1
 	if(well2_impact_factor < 1)
 	{	// temperature at cold well 2 is close to maximum of well 1
@@ -245,9 +246,9 @@ void WellSchemeAC::adapt_flowrate()
 				(1 - flowrate_adaption_factor * deltaT),
 						value_threshold, -ACCURACY_FLOWRATE);
 	
-	if(std::isnan(result.Q_w))
-		throw std::runtime_error(
-			"WellDoubletControl: nan when adapting Q_w");	
+	//if(std::isnan(result.Q_w))
+	//	throw std::runtime_error(
+	//		"WellDoubletControl: nan when adapting Q_w");	
 	LOG("\t\t\tadapt flow rate to\t" << result.Q_w);
 }
 
@@ -266,8 +267,8 @@ void WellSchemeAC::adapt_powerrate()
 
         LOG("\t\t\tadapt power rate to\t" << result.Q_H);
         result.flag_powerrateAdapted = true;
-	if(std::isnan(result.Q_H))
-		throw std::runtime_error("WellDoubletControl: nan when adapting Q_H");	
+	//if(std::isnan(result.Q_H))
+	//	throw std::runtime_error("WellDoubletControl: nan when adapting Q_H");	
 }
 
 void WellSchemeB::configureScheme()

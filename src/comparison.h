@@ -103,7 +103,7 @@ inline double threshold(double value, double threshold_value, double delta, thre
 	if(U <= 0)
 		return 0;
 	else if(0 < U && U < 1)
-		return 0;//pow(U, 2*(1-U));
+		return pow(U, 2*(1-U));
 	else
 		return 1;
 }
