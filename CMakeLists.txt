@@ -17,7 +17,8 @@ include_directories(
 )
 
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
+set(CMAKE_CXX_FLAGS "-Wall")
+set(CMAKE_CXX_STANDARD 11)
 
 add_subdirectory(src)
 
@@ -27,22 +28,26 @@ add_subdirectory(src)
 # target_link_libraries(simulate fakeSimulator)
 
 if(GTEST)
+		set(CMAKE_CXX_FLAGS "-pthread")
         add_subdirectory(fakeSimulator)
+		add_subdirectory("${PROJECT_SOURCE_DIR}/ext/gtest-1.8.0")
 
         enable_testing()
-        find_package(GTest REQUIRED)
+        #find_package(GTest REQUIRED)
 
         include_directories(
-                "${GTEST_INCLUDE_DIRS}"
                 "${PROJECT_SOURCE_DIR}/fakeSimulator"
-)
+				"${gtest_SOURCE_DIR}"
+				"${gtest_SOURCE_DIR}/include"
+		)
 
-        add_executable(allTests gtest/allTests.cpp)
-        target_link_libraries(allTests fakeSimulator)
-        target_link_libraries(allTests wellDoubletControl)
-        target_link_libraries(allTests ${GTEST_BOTH_LIBRARIES})
+        add_executable(run_tests gtest/allTests.cpp)
+        target_link_libraries(run_tests
+								fakeSimulator
+								wellDoubletControl
+								gtest gtest_main
+							)
 
 
-        add_test(ALL allTests)
 endif(GTEST)
 

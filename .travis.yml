@@ -1,0 +1,4 @@
+language: cpp
+script:
+  - bash build.sh
+  - ./build/run_tests
