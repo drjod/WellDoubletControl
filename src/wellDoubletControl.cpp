@@ -88,12 +88,22 @@ WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
 void WellSchemeAC::configureScheme()
 {
 	deltaTsign_stored = 0, flowrate_adaption_factor = FLOWRATE_ADAPTION_FACTOR;  
+	flag_converged = false; 
 
-	if(scheme_identifier == 'A')  // T1 at warm well
+	if(scheme_identifier == 'A')  // T1 at warm well for storing and T2 for extracting
 	{
 		LOG("\t\t\tconfigure scheme A");
-		simulation_result_aiming_at_target =
-			&WellSchemeAC::temperature_well1;
+		if(operationType == storing)
+		{
+			simulation_result_aiming_at_target =
+				&WellSchemeAC::temperature_well1;
+		}
+		else
+		{
+			simulation_result_aiming_at_target =
+				&WellSchemeAC::temperature_well2;
+		}
+
 	} 
 	else if(scheme_identifier == 'C')  // T1 - T2
 	{
@@ -168,10 +178,18 @@ void WellSchemeAC::evaluate_simulation_result(
 
 void WellSchemeAC::set_flowrate()
 {
-	double temp, denominator = 
-	(scheme_identifier == 'A') ?
-		heatCapacity1 * value_target - heatCapacity2 * result.T2 : 
-		heatCapacity1 * value_target;  // scheme C - !!!!!takes same capacity from well1 for both wells
+	double temp, denominator;
+	if(scheme_identifier == 'A')
+	{
+		if(operationType == WellDoubletControl::storing)
+			denominator = heatCapacity1 * value_target - heatCapacity2 * result.T2;
+		else
+			denominator = heatCapacity1 * result.T1 - heatCapacity2 * value_target;
+	}
+	else  // scheme C - !!!!!takes same capacity from well1 for both wells
+	{ 
+		denominator= heatCapacity1 * value_target;
+	}
 
 	if(fabs(denominator) < DBL_MIN)
 	{
@@ -180,21 +198,28 @@ void WellSchemeAC::set_flowrate()
 	else
 	{
 		temp = result.Q_H / denominator;
-		double well2_impact_factor = wdc::threshold(result.T2, value_target,
-			THRESHOLD_DELTA_WELL2, wdc::upper);
+	}
+
+		double well_interaction_factor = 1;
+		if(operationType == WellDoubletControl::storing)
+			well_interaction_factor = wdc::threshold(result.T2, value_target, THRESHOLD_DELTA_WELLINTERACTION, wdc::upper);
+		//else
+		//	well_interaction_factor = wdc::threshold(result.T1, value_target, THRESHOLD_DELTA_WELLINTERACTION, wdc::lower);
+
+		//LOG("\t\tWELL INTERACTION FACTOR: " << well_interaction_factor);
 		/*double well2_impact_factor = (operationType == storing) ?
 			wdc::threshold(result.T2, value_target,
 			std::fabs(value_target)*THRESHOLD_DELTA_FACTOR_WELL2,
 			wdc::upper) : 1.;	// temperature at cold well 2 
 		*/			// should not reach threshold of warm well 1
-		if(well2_impact_factor < 1)
+		if(well_interaction_factor < 1)
 		{
-			LOG("\tRegulate wells");
-			temp *= well2_impact_factor;
-			result.Q_H *= well2_impact_factor;
-			//result.flag_powerrateAdapted = true;
+			temp *= well_interaction_factor;
+			result.Q_H *= well_interaction_factor;
+        		LOG("\t\t\tAdjust wells - set power rate\t" << result.Q_H);
+			result.flag_powerrateAdapted = true;
 		}
-	}
+	
 
 	result.Q_w = (operationType == WellDoubletControl::storing) ?
 		wdc::confined(temp , ACCURACY_FLOWRATE, value_threshold) :
@@ -227,22 +252,28 @@ void WellSchemeAC::adapt_flowrate()
 
 	deltaTsign_stored = wdc::sign(deltaT);
 
-	double well2_impact_factor = wdc::threshold(result.T2, value_target,
-			THRESHOLD_DELTA_WELL2, wdc::upper);
+	double well_interaction_factor = 1; 
+
+	if(operationType == WellDoubletControl::storing)
+		well_interaction_factor = wdc::threshold(result.T2, value_target, THRESHOLD_DELTA_WELLINTERACTION, wdc::upper);
+	//else
+	//	well_interaction_factor = wdc::threshold(result.T1, value_target, THRESHOLD_DELTA_WELLINTERACTION, wdc::lower);
 				// temperature at cold well 2 
 				// should not reach threshold of warm well 1
-	if(well2_impact_factor < 1)
+	//LOG("\t\tWELL INTERACTION FACTOR: " << well_interaction_factor);
+
+	if(well_interaction_factor < 1)
 	{	// temperature at cold well 2 is close to maximum of well 1
-		LOG("\tRegulate wells");
-		result.Q_H *=  well2_impact_factor;
+		result.Q_H *=  well_interaction_factor;
+        	LOG("\t\t\tAdjust wells - set power rate\t" << result.Q_H);
 		result.flag_powerrateAdapted = true;
 	}
 
 	result.Q_w = (operationType == WellDoubletControl::storing) ?
-			wdc::confined(well2_impact_factor * result.Q_w *
+			wdc::confined(well_interaction_factor * result.Q_w *
 				(1 + flowrate_adaption_factor * deltaT),
 						ACCURACY_FLOWRATE, value_threshold) :
-			wdc::confined(well2_impact_factor * result.Q_w *
+			wdc::confined(well_interaction_factor * result.Q_w *
 				(1 - flowrate_adaption_factor * deltaT),
 						value_threshold, -ACCURACY_FLOWRATE);
 	
@@ -261,10 +292,17 @@ void WellSchemeAC::adapt_powerrate()
                 value_target);
  
 	if(operationType == storing && result.Q_H < 0.)
+	{
 		result.Q_H = 0.;
+		result.Q_w = 0.;
+		LOG("\t\t\tswitch off well");
+	}
 	else if(operationType == extracting && result.Q_H > 0.)
+	{
 		result.Q_H = 0.;
-
+		result.Q_w = 0.;
+		LOG("\t\t\tswitch off well");
+	}
         LOG("\t\t\tadapt power rate to\t" << result.Q_H);
         result.flag_powerrateAdapted = true;
 	//if(std::isnan(result.Q_H))

@@ -1,7 +1,7 @@
 #ifndef WELLDOUBLETCONTROL_H
 #define WELLDOUBLETCONTROL_H
 
-#define THRESHOLD_DELTA_WELL2 10.
+#define THRESHOLD_DELTA_WELLINTERACTION 10.
 // wells are switched of if temperature at cold well2 get
 // close to temperature at warm well 1, i.e. temperature at well 2 exceeds
 // threshold_value *(1 - THRESHOLD_DELTA_FACTOR_WELL2)
@@ -83,6 +83,7 @@ public:
 class WellSchemeAC : public WellDoubletControl
 {
         double temperature_well1() const { return result.T1; }  // to evaluate target
+        double temperature_well2() const { return result.T2; }  // to evaluate target
         double temperature_difference_well1well2() const { return result.T1 - result.T2; }
                                                         // to evaluate target
         double (WellSchemeAC::*simulation_result_aiming_at_target) () const;

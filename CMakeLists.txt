@@ -3,37 +3,46 @@ project(WellDoubletControl)
 set(WellDoubletControl_VERSION_MAJOR 1)
 set(WellDoubletControl_VERSION_MINOR 0)
 set(logging 1)
+option(GTEST "Use google test" ON)
 
-enable_testing()
-find_package(GTest REQUIRED)
 
 configure_file(
-	"${PROJECT_SOURCE_DIR}/wdc_config.h.in"
-	"${PROJECT_BINARY_DIR}/wdc_config.h"
+        "${PROJECT_SOURCE_DIR}/wdc_config.h.in"
+        "${PROJECT_BINARY_DIR}/wdc_config.h"
 )
 
 include_directories(
-	"${PROJECT_BINARY_DIR}"  # for config files
-	"${PROJECT_SOURCE_DIR}/fakeSimulator"
-	"${PROJECT_SOURCE_DIR}/src"
-	"${GTEST_INCLUDE_DIRS}"
+        "${PROJECT_BINARY_DIR}"  # for config files
+        "${PROJECT_SOURCE_DIR}/src"
 )
 
 
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
 
-add_subdirectory(fakeSimulator)
 add_subdirectory(src)
 
+# add_executable(simulate main.cpp)
+# target_link_libraries(simulate fakeSimulator)
+# target_link_libraries(simulate wellDoubletControl)
+# target_link_libraries(simulate fakeSimulator)
 
-add_executable(simulate main.cpp)
-target_link_libraries(simulate fakeSimulator)
-target_link_libraries(simulate wellDoubletControl)
+if(GTEST)
+        add_subdirectory(fakeSimulator)
+
+        enable_testing()
+        find_package(GTest REQUIRED)
+
+        include_directories(
+                "${GTEST_INCLUDE_DIRS}"
+                "${PROJECT_SOURCE_DIR}/fakeSimulator"
+)
+
+        add_executable(allTests gtest/allTests.cpp)
+        target_link_libraries(allTests fakeSimulator)
+        target_link_libraries(allTests wellDoubletControl)
+        target_link_libraries(allTests ${GTEST_BOTH_LIBRARIES})
 
 
-add_executable(allTests gtest/allTests.cpp)
-target_link_libraries(allTests fakeSimulator)
-target_link_libraries(allTests wellDoubletControl)
-target_link_libraries(allTests ${GTEST_BOTH_LIBRARIES})
+        add_test(ALL allTests)
+endif(GTEST)
 
-add_test(ALL allTests)

@@ -35,7 +35,7 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	// output: Q_H, Q_w, T1, flag_powerrateAdapted
 
 	// Scheme A - storing
-	std::make_tuple('A', 1.e5, 100., 0.01, // T1_target, Q_w_max
+/*	std::make_tuple('A', 1.e5, 100., 0.01, // T1_target, Q_w_max
 			1.e5, 0.0, 70., false),  // target T1 not reached although flow rate is zero
 	std::make_tuple('A', 1.e6, 100., 0.01, // T1_target, Q_w_max
 			1.e6, 0.008, 100., false),  // target T1 reached by adapting flow rate
@@ -48,7 +48,7 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 			-5.e5, -0.00666, 20., false),  // target T1 not reached by adapting flow rate
 	std::make_tuple('A', -1.e6, 20., -0.01, // T1_target, Q_w_min
 			-7.5e5, -0.01, 20., true),  // target T1 reached by adapting power rate
-	////// Scheme B - storing
+*/	////// Scheme B - storing
 	std::make_tuple('B', 1.e6, 0.01, 100., // Q_w_target, T1_max
 			1.e6, 0.01, 89.961, false),  // has not reached threshold
 	std::make_tuple('B', 1.e6, 0.01, 80., // Q_w_target, T1_max
