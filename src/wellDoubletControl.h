@@ -38,7 +38,7 @@ protected:
 	double heatCapacity1, heatCapacity2;  // Schemes A/B: 1: at warm well, 2: ar cold well
 				// Scheme C: 1 for both wells
 
-	char scheme_identifier; // 'A', 'B', or 'C'	
+	int scheme_identifier; // 'A', 'B', or 'C'	
 	double value_target, value_threshold;
 	// A: T1_target, Q_w_max 
 	// B: Q_w_target, T1_max 
@@ -71,22 +71,38 @@ public:
 			// constraints are set at beginning of time step
 
 	static WellDoubletControl* create_wellDoubletControl(
-				const char& selection);
+				const int& selection);
 			// instance is created before time-stepping
 	
 	void print_temperatures() const;
-	const char& get_schemeIdentifier() const { return scheme_identifier; }
+	const int& get_schemeIdentifier() const { return scheme_identifier; }
 	virtual bool converged(double _T1, double accuracy) const = 0;
 };
 
 
-class WellSchemeAC : public WellDoubletControl
+class WellScheme_0 : public WellDoubletControl
+{
+	void configureScheme();
+public:
+	WellScheme_0(const int& _scheme_identifier)
+	{ scheme_identifier = _scheme_identifier; }
+
+	void evaluate_simulation_result(const double& _T1, const double& _T2,
+			const double& _heatCapacity1, const double& _heatCapacity2);
+
+        void set_flowrate();
+        void adapt_powerrate();
+	bool converged(double, double) const { return false; }
+		// convergence exclusively decided by simulator
+};
+
+class WellScheme_12 : public WellDoubletControl
 {
         double temperature_well1() const { return result.T1; }  // to evaluate target
         double temperature_well2() const { return result.T2; }  // to evaluate target
         double temperature_difference_well1well2() const { return result.T1 - result.T2; }
                                                         // to evaluate target
-        double (WellSchemeAC::*simulation_result_aiming_at_target) () const;
+        double (WellScheme_12::*simulation_result_aiming_at_target) () const;
 	// to differentiate between scheme A and C
         // scheme A: pointing at temperature_Well1(),
         // scheme C: pointing at temperature_difference(),
@@ -98,7 +114,7 @@ class WellSchemeAC : public WellDoubletControl
 	void configureScheme();
 	bool flag_converged; // for the case that target cannot be reached by adapting flow rate
 public:
-	WellSchemeAC(const char& _scheme_identifier)
+	WellScheme_12(const int& _scheme_identifier)
 	{ scheme_identifier = _scheme_identifier; }
 
 	void evaluate_simulation_result(const double& _T1, const double& _T2,
@@ -106,21 +122,5 @@ public:
 	bool converged(double _T1, double accuracy) const { return (fabs(_T1 - value_target) < accuracy || flag_converged); }
 };
 
-
-class WellSchemeB : public WellDoubletControl
-{
-	void configureScheme();
-public:
-	WellSchemeB(const char& _scheme_identifier)
-	{ scheme_identifier = _scheme_identifier; }
-
-	void evaluate_simulation_result(const double& _T1, const double& _T2,
-			const double& _heatCapacity1, const double& _heatCapacity2);
-
-        void set_flowrate();
-        void adapt_powerrate();
-	bool converged(double, double) const { return false; }
-		// convergence exclusively decided by simulator
-};
 
 #endif

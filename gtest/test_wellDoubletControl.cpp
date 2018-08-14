@@ -34,43 +34,43 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	// input: scheme, Q_H, value_target, value_threshold
 	// output: Q_H, Q_w, T1, flag_powerrateAdapted
 
-	// Scheme A - storing
-/*	std::make_tuple('A', 1.e5, 100., 0.01, // T1_target, Q_w_max
+	// Scheme 1 - storing
+/*	std::make_tuple(1, 1.e5, 100., 0.01, // T1_target, Q_w_max
 			1.e5, 0.0, 70., false),  // target T1 not reached although flow rate is zero
-	std::make_tuple('A', 1.e6, 100., 0.01, // T1_target, Q_w_max
+	std::make_tuple(1, 1.e6, 100., 0.01, // T1_target, Q_w_max
 			1.e6, 0.008, 100., false),  // target T1 reached by adapting flow rate
-	std::make_tuple('A', 2.e6, 100., 0.01, // T1_target, Q_w_max
+	std::make_tuple(1, 2.e6, 100., 0.01, // T1_target, Q_w_max
 			1.25e6, 0.01, 100., true),  // target T1 reached by adapting power rate
-	// Scheme A - extracting
-	std::make_tuple('A', -1.e5, 20., -0.01, // T1_target, Q_w_min
+	// Scheme 1 - extracting
+	std::make_tuple(1, -1.e5, 20., -0.01, // T1_target, Q_w_min
 			-1.e5, 0., 30., false),  // target T1 not reached although flow rate is at threshold
-	std::make_tuple('A', -5.e5, 20., -0.01, // T1_target, Q_w_min
+	std::make_tuple(1, -5.e5, 20., -0.01, // T1_target, Q_w_min
 			-5.e5, -0.00666, 20., false),  // target T1 not reached by adapting flow rate
-	std::make_tuple('A', -1.e6, 20., -0.01, // T1_target, Q_w_min
+	std::make_tuple(1, -1.e6, 20., -0.01, // T1_target, Q_w_min
 			-7.5e5, -0.01, 20., true),  // target T1 reached by adapting power rate
-*/	////// Scheme B - storing
-	std::make_tuple('B', 1.e6, 0.01, 100., // Q_w_target, T1_max
+*/	////// Scheme 0 - storing
+	std::make_tuple(0, 1.e6, 0.01, 100., // Q_w_target, T1_max
 			1.e6, 0.01, 89.961, false),  // has not reached threshold
-	std::make_tuple('B', 1.e6, 0.01, 80., // Q_w_target, T1_max
+	std::make_tuple(0, 1.e6, 0.01, 80., // Q_w_target, T1_max
 			7.5e5, 0.01, 80., true),  // has reached threshold
-	//// Scheme B - extracting
-	std::make_tuple('B', -1.e5, -0.01, 30., // Q_w_target, T1_min
+	//// Scheme 0 - extracting
+	std::make_tuple(0, -1.e5, -0.01, 30., // Q_w_target, T1_min
 			-1.e5, -0.01, 46., false),  // has not reached threshold
-	std::make_tuple('B', -1.e6, -0.01, 30., // Q_w_target, T1_min
+	std::make_tuple(0, -1.e6, -0.01, 30., // Q_w_target, T1_min
 			-5.e5, -0.01, 30., true),  // has not reached threshold
-	//// Scheme C - storing (same examples as for scheme A, and should give same results)
-	std::make_tuple('C', 1.e5, 90., 0.01, // DT_target, Q_w_max
+	//// Scheme 2 - storing (same examples as for scheme A, and should give same results)
+	std::make_tuple(2, 1.e5, 90., 0.01, // DT_target, Q_w_max
 			1.e5, 0.0, 70., false),  // target DT not reached although flow rate is zero
-	std::make_tuple('C', 1.e6, 90., 0.01, // DT_target, Q_w_max
+	std::make_tuple(2, 1.e6, 90., 0.01, // DT_target, Q_w_max
 			1.e6, 0.008, 100., false),  // target DT reached by adapting flow rate
-	std::make_tuple('C', 2.e6, 90., 0.01,  // DT_target, Q_w_max
+	std::make_tuple(2, 2.e6, 90., 0.01,  // DT_target, Q_w_max
 			1.25e6, 0.01, 100., true),  // target DT reached by adapting power rate
-	// Scheme C - extracting
-	std::make_tuple('C', -1.e5, 10., -0.01, // DT_target, Q_w_min
+	// Scheme 2 - extracting
+	std::make_tuple(2, -1.e5, 10., -0.01, // DT_target, Q_w_min
 			-1.e5, 0., 30., false),  // target DT not reached although flow rate is at threshold
-	std::make_tuple('C', -5.e5, 10., -0.01,  // DT_target, Q_w_min
+	std::make_tuple(2, -5.e5, 10., -0.01,  // DT_target, Q_w_min
 			-5.e5, -0.00666, 20., false),  // target DT not reached by adapting flow rate
-	std::make_tuple('C', -1.e6, 10., -0.01,  // DT_target, Q_w_min
+	std::make_tuple(2, -1.e6, 10., -0.01,  // DT_target, Q_w_min
 			-7.5e5, -0.01, 20., true)  // target DT reached by adapting flow rate
 
 ));

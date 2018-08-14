@@ -14,7 +14,7 @@ struct Simulator
 	
 	virtual const bool& get_flag_iterate() const = 0;
 	virtual const WellDoubletControl* get_wellDoubletControl() const = 0;
-	virtual void create_wellDoubletControl(const char& selection) = 0;
+	virtual void create_wellDoubletControl(const int& selection) = 0;
 
         virtual void initialize_temperatures() = 0;
 	virtual void calculate_temperatures(
@@ -22,11 +22,9 @@ struct Simulator
         virtual void update_temperatures() = 0;
 	virtual double calculate_error() = 0;
 
-	virtual void execute_timeStep(
-		const char& wellDoubletControlScheme, const double& Q_H, 
-		const double& value_target, const double& value_threshold) = 0;
+	virtual void execute_timeStep() = 0;
 	virtual void simulate(
-		const char& wellDoubletControlScheme, const double& Q_H, 
+		const int& wellDoubletControlScheme, const double& Q_H, 
 		const double& value_target, const double& value_threshold) = 0;
 };
 
@@ -50,7 +48,7 @@ public:
 	const bool& get_flag_iterate() const { return flag_iterate; }
 	const WellDoubletControl* get_wellDoubletControl() const
 	{ return wellDoubletControl; }
-	void create_wellDoubletControl(const char& selection);
+	void create_wellDoubletControl(const int& selection);
 				// is done at the begiining of each time step
 
         void initialize_temperatures();
@@ -59,9 +57,8 @@ public:
         void update_temperatures();
 	double calculate_error();
 
-	void execute_timeStep(const char& wellDoubletControlScheme, const double& Q_H, 
-		const double& value_target, const double& value_threshold);
-	void simulate(const char& wellDoubletControlScheme, const double& Q_H, 
+	void execute_timeStep();
+	void simulate(const int& wellDoubletControlScheme, const double& Q_H, 
 		const double& value_target, const double& value_threshold);
 		// values are passed to execute_timeStep(), they are constant
 		// now but will be timestep-dependent in a real application

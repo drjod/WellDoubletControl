@@ -1,6 +1,6 @@
 cd build
 cmake -Dlogging=$1 ..
 make
-./allTests
+./run_tests
 
 cd ..

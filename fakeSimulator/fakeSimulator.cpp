@@ -6,7 +6,7 @@
 #include "wdc_config.h"
 
 
-void FakeSimulator::create_wellDoubletControl(const char& selection)
+void FakeSimulator::create_wellDoubletControl(const int& selection)
 {
 	if(wellDoubletControl != nullptr)
 		delete wellDoubletControl;  // from last timestep
@@ -59,9 +59,7 @@ void FakeSimulator::update_temperatures()
 	}
 }
 
-void FakeSimulator::execute_timeStep(
-	const char& wellDoubletControlScheme, const double& Q_H, 
-	const double& value_target, const double& value_threshold)
+void FakeSimulator::execute_timeStep()
 {
 	int i;
 	for(i=0; i<MAX_NUMBER_OF_ITERATIONS; i++)
@@ -80,7 +78,7 @@ void FakeSimulator::execute_timeStep(
 	log_file("\tIterations: " + std::to_string(i));
 }
 
-void FakeSimulator::simulate(const char& wellDoubletControlScheme,
+void FakeSimulator::simulate(const int& wellDoubletControlScheme,
 			const double& Q_H, const double& value_target,
 			const double& value_threshold)
 {
@@ -90,7 +88,7 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 	{       
 		LOG("time step " << i);
 		log_file("Time step: " + std::to_string(i) + "\t" +
-			wellDoubletControlScheme + " " +
+			std::to_string(wellDoubletControlScheme) + " " +
 			std::to_string(Q_H) + " " +
 			std::to_string(value_target) + " " +
 			std::to_string(value_threshold));
@@ -100,8 +98,7 @@ void FakeSimulator::simulate(const char& wellDoubletControlScheme,
 			temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE,
 			HEAT_CAPACITY, HEAT_CAPACITY); 
 
-		execute_timeStep(wellDoubletControlScheme,
-				Q_H, value_target, value_threshold);
+		execute_timeStep();
 		
 		LOG(*this);
 		update_temperatures();
