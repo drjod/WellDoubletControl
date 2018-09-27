@@ -1,23 +1,26 @@
-#ifndef WELLDOUBLETCONTROL_H
-#define WELLDOUBLETCONTROL_H
+#ifndef WELL_DOUBLET_CONTROL_H
+#define WELL_DOUBLET_CONTROL_H
 
-#define THRESHOLD_DELTA_WELLINTERACTION 10.
-// wells are switched of if temperature at cold well2 get
-// close to temperature at warm well 1, i.e. temperature at well 2 exceeds
-// threshold_value *(1 - THRESHOLD_DELTA_FACTOR_WELL2)
-#define POWERRATE_ADAPTION_FACTOR 0.9
-// used in schemes A/C - try using 1 to reduce number of iterations
-#define FLOWRATE_ADAPTION_FACTOR .5
-// used in schemes A/C - it is modified during iteration with a mutable variable
-// Q_w = Q_w (1 +/- a (T_1 - value_target) / (T1 - T2)) for scheme A 
+const double c_well_shutdown_temperature_range = 10.;
+// for schemes 1, 2
+// well doublet is shutdown if storage becomes full (when storing) or empty (when extracting) 
+// i.e.  flow and powerrate gruadually become zero if
+// 	storing:  T_UA (cold well) exceeds value_threshold - c_well_shutdown_temperature_range
+//	extracting: T_HE (warm well) falls below value_threshlod + c_well_shutdown_temperature_range 
+const double c_powerrate_adaption_factor = 0.9;
+// used in schemes 1 and 2 - try using 1 to reduce number of iterations
+const double c_flowrate_adaption_factor = .5;
+// used in schemes 1 2 - it is modified during iteration with a mutable variable
+// Q_w = Q_w (1 +/- a (T_1 - value_target) / (T_HE - T_UA)) for scheme 1
 // it is multiplied with itself, if a threshold is hit
 // therefore: DO NOT USE 1 as value
 
-#define ACCURACY_FLOWRATE 1.e-5
-// used for comparison with threshold and zero, it is also minimum flowrate
-#define ACCURACY_TEMPERATURE 1.e-1
+const double c_accuracy_flowrate = 1.e-5;
+// used for comparison with threshold and zero, it is also minimum absolute flowrate
+const double c_accuracy_temperature = 1.e-1;
 // used for thresholds
 
+#include "wdc_config.h"
 #include "comparison.h"
 #include <string>
 
@@ -29,45 +32,63 @@ public:
 		double Q_H, Q_w;  // power rate Q_H (given input, potentially adapted),
                                 // flow rate Q_w either calculated
                                 // (schemes A and C) or set as input (Scheme B)
-        	double T1, T2;  // temperature at well 1 ("warm well") 
-                        // and 2 ("cold well") obtained from simulation results
+        	double T_HE, T_UA;  // temperature at heat exchanger and in upwind aquifer
         	bool flag_powerrateAdapted;  // says if storage meets requirement or not
 	};
+
+	struct balancing_properties_t  // helper struct to pass properties around
+	{
+		double T_HE, T_UA, volumetricHeatCapacity_HE, volumetricHeatCapacity_UA;
+	};
+private:
+	result_t result;  // for the client
 protected:
-	result_t result;
-	double heatCapacity1, heatCapacity2;  // Schemes A/B: 1: at warm well, 2: ar cold well
+	void set_flowrate(const double& _Q_w)
+	{ 
+		result.Q_w = _Q_w; 
+		LOG("\t\t\tset flow rate\t" << _Q_w);
+	}
+	void set_powerrate(const double& _Q_H) 
+	{ 
+		result.Q_H = _Q_H;
+		result.flag_powerrateAdapted = true;
+		LOG("\t\t\tadapt power rate\t" << _Q_H);
+	}
+
+	//  TO REMOVE
+        double temperature_well1() const { return result.T_HE; }  // to evaluate target
+        double temperature_well2() const { return result.T_UA; }  // to evaluate target
+        double temperature_difference_well1well2() const { return result.T_HE - result.T_UA; }
+                                                        // to evaluate target
+	double volumetricHeatCapacity_HE, volumetricHeatCapacity_UA;  // Schemes A/B: 1: at warm well, 2: ar cold well
 				// Scheme C: 1 for both wells
 
-	int scheme_identifier; // 'A', 'B', or 'C'	
 	double value_target, value_threshold;
-	// A: T1_target, Q_w_max 
-	// B: Q_w_target, T1_max 
+	// A: T_HE_target, Q_w_max 
+	// B: Q_w_target, T_HE_max 
 	// C: DT_target, Q_w_max
 
 	enum {storing, extracting} operationType;
 
 	wdc::Comparison beyond, notReached;
 
-	void set_heatFluxes(const double& _T1, const double& _T2,
-				const double& _heatCapacity1, const double& _heatCapacity2);  
+	void set_balancing_properties(const balancing_properties_t& balancing_properites);
 					// called in evaluate_simulation_result
-	virtual void set_flowrate() = 0;
+	virtual void estimate_flowrate() = 0;
 	void write_outputFile() const;
 public:
 	WellDoubletControl() : value_target(0.) { result.Q_w = 0.; }
+	virtual int scheme_identifier() const = 0;
 
 	virtual ~WellDoubletControl() = default;
 
-	const WellDoubletControl::result_t& get_result() const { return result; }
-
+	result_t get_result() const { return result; }
 	virtual void configureScheme() = 0;
-	virtual void evaluate_simulation_result(const double& _T1, const double& _T2,
-			const double& _heatCapacity1, const double& _heatCapacity2) = 0;
+	virtual void evaluate_simulation_result(const balancing_properties_t& balancing_properites) = 0;
 	
 	void configure(const double& _Q_H,  
-		const double& _value_target, const double& _value_threshold,
-		const double& _T1, const double& _T2,
-		const double& _heatCapacity1, const double& _heatCapacity2);
+		const double& _value_target, const double& _value_threshold, 
+		const balancing_properties_t& balancing_properites);
 			// constraints are set at beginning of time step
 
 	static WellDoubletControl* create_wellDoubletControl(
@@ -75,52 +96,70 @@ public:
 			// instance is created before time-stepping
 	
 	void print_temperatures() const;
-	const int& get_schemeIdentifier() const { return scheme_identifier; }
-	virtual bool converged(double _T1, double accuracy) const = 0;
+	virtual bool converged(double _T_HE, double accuracy) const = 0;
 };
 
 
 class WellScheme_0 : public WellDoubletControl
 {
-	void configureScheme();
+	void configureScheme() override;
 public:
-	WellScheme_0(const int& _scheme_identifier)
-	{ scheme_identifier = _scheme_identifier; }
+	WellScheme_0() = default;
+	int scheme_identifier() const override { return 0; }
 
-	void evaluate_simulation_result(const double& _T1, const double& _T2,
-			const double& _heatCapacity1, const double& _heatCapacity2);
+	void evaluate_simulation_result(const balancing_properties_t& balancing_properites) override;
 
-        void set_flowrate();
+        void estimate_flowrate() override;
         void adapt_powerrate();
-	bool converged(double, double) const { return false; }
+	bool converged(double, double) const override { return false; }
 		// convergence exclusively decided by simulator
 };
 
-class WellScheme_12 : public WellDoubletControl
+class WellScheme_1 : public WellDoubletControl
 {
-        double temperature_well1() const { return result.T1; }  // to evaluate target
-        double temperature_well2() const { return result.T2; }  // to evaluate target
-        double temperature_difference_well1well2() const { return result.T1 - result.T2; }
+        //double temperature_well1() const { return result.T_HE; }  // to evaluate target
+        //double temperature_well2() const { return result.T_UA; }  // to evaluate target
+        //double temperature_difference_well1well2() const { return result.T_HE - result.T_UA; }
                                                         // to evaluate target
-        double (WellScheme_12::*simulation_result_aiming_at_target) () const;
+        double (WellScheme_1::*simulation_result_aiming_at_target) () const;
 	// to differentiate between scheme A and C
         // scheme A: pointing at temperature_Well1(),
         // scheme C: pointing at temperature_difference(),
 	double flowrate_adaption_factor, deltaTsign_stored;
 	// to store values from the last interation when adapting flowrate
-        void set_flowrate();
+        void estimate_flowrate() override;
        	void adapt_flowrate();
         void adapt_powerrate();
-	void configureScheme();
+	void configureScheme() override;
 	bool flag_converged; // for the case that target cannot be reached by adapting flow rate
 public:
-	WellScheme_12(const int& _scheme_identifier)
-	{ scheme_identifier = _scheme_identifier; }
+	int scheme_identifier() const override { return 1; }
+	WellScheme_1() = default;
 
-	void evaluate_simulation_result(const double& _T1, const double& _T2,
-			const double& _heatCapacity1, const double& _heatCapacity2);
-	bool converged(double _T1, double accuracy) const { return (fabs(_T1 - value_target) < accuracy || flag_converged); }
+	void evaluate_simulation_result(const balancing_properties_t& balancing_properites) override;
+	bool converged(double _T_HE, double accuracy) const override { return (fabs(_T_HE - value_target) < accuracy || flag_converged); }
 };
 
+
+class WellScheme_2 : public WellDoubletControl
+{
+        double (WellScheme_2::*simulation_result_aiming_at_target) () const;
+	// to differentiate between scheme A and C
+        // scheme A: pointing at temperature_Well1(),
+        // scheme C: pointing at temperature_difference(),
+	double flowrate_adaption_factor, deltaTsign_stored;
+	// to store values from the last interation when adapting flowrate
+        void estimate_flowrate() override;
+       	void adapt_flowrate();
+        void adapt_powerrate();
+	void configureScheme() override;
+	bool flag_converged; // for the case that target cannot be reached by adapting flow rate
+public:
+	int scheme_identifier() const override { return 2; }
+	WellScheme_2() = default;
+
+	void evaluate_simulation_result(const balancing_properties_t& balancing_properites) override;
+	bool converged(double _T_HE, double accuracy) const override { return (fabs(_T_HE - value_target) < accuracy || flag_converged); }
+};
 
 #endif

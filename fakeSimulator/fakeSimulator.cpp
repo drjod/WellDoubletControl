@@ -18,11 +18,11 @@ void FakeSimulator::create_wellDoubletControl(const int& selection)
 void FakeSimulator::initialize_temperatures()
 {
 	LOG("\tinitialize simulation");
-	for(int i=0; i<GRID_SIZE; i++)
+	for(int i=0; i<c_gridSize; i++)
 	{
-		temperatures_previousTimestep[i] = WELL1_TEMPERATURE_INITIAL; 
-		temperatures_previousIteration[i] = WELL1_TEMPERATURE_INITIAL; 
-		temperatures[i] = WELL1_TEMPERATURE_INITIAL; 
+		temperatures_previousTimestep[i] = c_temperature_storage_initial; 
+		temperatures_previousIteration[i] = c_temperature_storage_initial; 
+		temperatures[i] = c_temperature_storage_initial; 
 					// as input for WellDoubletControl
 	}
 	LOG(*this);
@@ -36,43 +36,43 @@ void FakeSimulator::calculate_temperatures(const double& Q_H,
 	// update inlet node
 	temperatures[0] = temperatures_previousTimestep[0];
 
-	for(int i=1; i<GRID_SIZE; i++)
+	for(int i=1; i<c_gridSize; i++)
 	{  // grid spacing is one meter (just 1 D - not radial)
 		// calculate temperatures on [1, GRIDSIZE)
 		// use always fabs(Q_w) > 0 (for injection and inextraction)
 		// (temperature at well 2 is fixed)
 		temperatures[i] = temperatures_previousTimestep[i] +
-			TIMESTEPSIZE * fabs(Q_w) * POROSITY *
+			c_timeStepSize * fabs(Q_w) * c_porosity *
 			(temperatures_previousTimestep[i-1] - temperatures_previousTimestep[i]);
 	}
 
 	// add source term
-	temperatures[WELL1_NODE_NUMBER] += TIMESTEPSIZE * Q_H / HEAT_CAPACITY;
+	temperatures[c_heatExchanger_nodeNumber] += c_timeStepSize * Q_H / c_heatCapacity;
 }
 
 void FakeSimulator::update_temperatures()
 {
-	for(int i=0; i<GRID_SIZE; i++)
+	for(int i=0; i<c_gridSize; i++)
 	{
 		temperatures_previousTimestep[i] = temperatures[i];
 		temperatures_previousIteration[i] = temperatures[i];
 	}
 }
 
-void FakeSimulator::execute_timeStep()
+void FakeSimulator::execute_timeStep(const double& well2_temperature)
 {
 	int i;
-	for(i=0; i<MAX_NUMBER_OF_ITERATIONS; i++)
+	for(i=0; i<c_maxNumberOfIterations; i++)
 	{
 		LOG("\titeration " << i);
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
 					wellDoubletControl->get_result().Q_w);
 		wellDoubletControl->evaluate_simulation_result(
-			temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE,
-			HEAT_CAPACITY, HEAT_CAPACITY);
+			{ temperatures[c_heatExchanger_nodeNumber], well2_temperature,
+			c_heatCapacity, c_heatCapacity });
 		
-		if(i > MIN_NUMBER_OF_ITERATIONS && (calculate_error() < ACCURACY ||
-			wellDoubletControl->converged(temperatures[WELL1_NODE_NUMBER], ACCURACY)))
+		if(i > c_minNumberOfIterations && (calculate_error() < c_accuracy ||
+			wellDoubletControl->converged(temperatures[c_heatExchanger_nodeNumber], c_accuracy)))
 				break;
 	}
 	log_file("\tIterations: " + std::to_string(i));
@@ -82,9 +82,18 @@ void FakeSimulator::simulate(const int& wellDoubletControlScheme,
 			const double& Q_H, const double& value_target,
 			const double& value_threshold)
 {
+	const double well2_temperature = (Q_H>0)? 
+			c_temperature_upwindAquifer_storing : c_temperature_upwindAquifer_extracting;
+ 
 	initialize_temperatures();
 
-	for(int i=0; i<NUMBER_OF_TIMESTEPS; i++)
+	std::fstream fout("timer.txt", std::ofstream::out | std::ios::app);
+	Timer<std::fstream> timer(std::string(
+			std::to_string(wellDoubletControlScheme) + " " +
+			std::to_string(Q_H) + " " +
+			std::to_string(value_target) + " " +
+			std::to_string(value_threshold)).c_str(), fout);
+	for(int i=0; i<c_numberOfTimeSteps; i++)
 	{       
 		LOG("time step " << i);
 		log_file("Time step: " + std::to_string(i) + "\t" +
@@ -95,10 +104,10 @@ void FakeSimulator::simulate(const int& wellDoubletControlScheme,
 		create_wellDoubletControl(wellDoubletControlScheme);
 		wellDoubletControl->configure(
 			Q_H, value_target, value_threshold,
-			temperatures[WELL1_NODE_NUMBER], WELL2_TEMPERATURE,
-			HEAT_CAPACITY, HEAT_CAPACITY); 
+			{ temperatures[c_heatExchanger_nodeNumber], well2_temperature,
+			c_heatCapacity, c_heatCapacity }); 
 
-		execute_timeStep();
+		execute_timeStep(well2_temperature);
 		
 		LOG(*this);
 		update_temperatures();
@@ -109,7 +118,7 @@ double FakeSimulator::calculate_error()
 {
 	double error = 0.;
 
-	for(int i=0; i < GRID_SIZE; i++)
+	for(int i=0; i < c_gridSize; i++)
 	{
 		error = std::max(error,
 			std::fabs(temperatures[i] - temperatures_previousIteration[i]));
@@ -133,7 +142,7 @@ void FakeSimulator::log_file(T toLog)
 std::ostream& operator<<(std::ostream& stream, const FakeSimulator& simulator)
 {
 	stream << "\t\tATES temperature: ";
-        for(int i=0; i<GRID_SIZE; ++i)
+        for(int i=0; i<c_gridSize; ++i)
                 stream << simulator.temperatures[i] << " ";
         return stream;
 }

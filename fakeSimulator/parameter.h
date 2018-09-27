@@ -1,22 +1,24 @@
 #ifndef PARAMETER_H
 #define PARAMETER_H
 
+// ICs and BCs
+const double c_temperature_storage_initial = 50;
+const double c_temperature_upwindAquifer_storing = 10;
+const double c_temperature_upwindAquifer_extracting = 50;
 
-// Parameters which are constant throughout testing:
-#define WELL1_TEMPERATURE_INITIAL 50
-#define WELL2_TEMPERATURE 10
+// aquifer parameter
+const double c_heatCapacity = 5.e6;
+const double c_porosity = 0.5;
 
-#define HEAT_CAPACITY 5.e6
-#define POROSITY 0.5
-
-#define GRID_SIZE 11
-#define WELL1_NODE_NUMBER 5
+// mesh and geometry
+const int c_gridSize = 11;
+const int c_heatExchanger_nodeNumber = 5;
 
 // numerics
-#define MIN_NUMBER_OF_ITERATIONS 3
-#define MAX_NUMBER_OF_ITERATIONS 200
-#define NUMBER_OF_TIMESTEPS 10
-#define TIMESTEPSIZE 1.e2
-#define ACCURACY 0.01
+const int c_minNumberOfIterations = 3;
+const int c_maxNumberOfIterations = 200;
+const int c_numberOfTimeSteps = 10;
+const double c_timeStepSize = 1.e2;
+const double c_accuracy = 0.01;
 
 #endif

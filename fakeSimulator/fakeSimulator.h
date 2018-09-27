@@ -4,6 +4,7 @@
 #include <string>
 #include "wellDoubletControl.h"
 #include "parameter.h"
+#include "timer.h"
 
 
 class WellDoubletControl;
@@ -22,7 +23,7 @@ struct Simulator
         virtual void update_temperatures() = 0;
 	virtual double calculate_error() = 0;
 
-	virtual void execute_timeStep() = 0;
+	virtual void execute_timeStep(const double& well2_temperature) = 0;
 	virtual void simulate(
 		const int& wellDoubletControlScheme, const double& Q_H, 
 		const double& value_target, const double& value_threshold) = 0;
@@ -31,9 +32,9 @@ struct Simulator
 
 class FakeSimulator : public Simulator
 {
-        double temperatures[GRID_SIZE]; 
-        double temperatures_previousIteration[GRID_SIZE];  // to calculate error 
-        double temperatures_previousTimestep[GRID_SIZE];
+        double temperatures[c_gridSize]; 
+        double temperatures_previousIteration[c_gridSize];  // to calculate error 
+        double temperatures_previousTimestep[c_gridSize];
 
         WellDoubletControl* wellDoubletControl;
         bool flag_iterate;  // to convert threshold value into a target value
@@ -45,21 +46,21 @@ public:
 			// a wellDoubletControl instance is constructed 
 			// (and destructed) each time step
 
-	const bool& get_flag_iterate() const { return flag_iterate; }
-	const WellDoubletControl* get_wellDoubletControl() const
+	const bool& get_flag_iterate() const override { return flag_iterate; }
+	const WellDoubletControl* get_wellDoubletControl() const override
 	{ return wellDoubletControl; }
-	void create_wellDoubletControl(const int& selection);
+	void create_wellDoubletControl(const int& selection) override;
 				// is done at the begiining of each time step
 
-        void initialize_temperatures();
+        void initialize_temperatures() override;
 	void calculate_temperatures(const double& Q_H, const double& Q_w);
 						// solves advection equation
-        void update_temperatures();
-	double calculate_error();
+        void update_temperatures() override;
+	double calculate_error() override;
 
-	void execute_timeStep();
+	void execute_timeStep(const double& well2_temperature) override;
 	void simulate(const int& wellDoubletControlScheme, const double& Q_H, 
-		const double& value_target, const double& value_threshold);
+		const double& value_target, const double& value_threshold) override;
 		// values are passed to execute_timeStep(), they are constant
 		// now but will be timestep-dependent in a real application
 	template <typename T> void log_file(T toLog);
