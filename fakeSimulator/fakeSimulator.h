@@ -7,19 +7,18 @@
 #include "timer.h"
 
 
-class WellDoubletControl;
 
 struct Simulator
 {
 	virtual ~Simulator() {}
 	
 	virtual const bool& get_flag_iterate() const = 0;
-	virtual const WellDoubletControl* get_wellDoubletControl() const = 0;
+	virtual const wdc::WellDoubletControl* get_wellDoubletControl() const = 0;
 	virtual void create_wellDoubletControl(const int& selection) = 0;
 
         virtual void initialize_temperatures() = 0;
 	virtual void calculate_temperatures(
-				const double& Q_H, const double& Q_w) = 0;
+				const double& Q_H, const double& Q_W) = 0;
         virtual void update_temperatures() = 0;
 	virtual double calculate_error() = 0;
 
@@ -36,7 +35,7 @@ class FakeSimulator : public Simulator
         double temperatures_previousIteration[c_gridSize];  // to calculate error 
         double temperatures_previousTimestep[c_gridSize];
 
-        WellDoubletControl* wellDoubletControl;
+        wdc::WellDoubletControl* wellDoubletControl;
         bool flag_iterate;  // to convert threshold value into a target value
 
 public:
@@ -47,13 +46,13 @@ public:
 			// (and destructed) each time step
 
 	const bool& get_flag_iterate() const override { return flag_iterate; }
-	const WellDoubletControl* get_wellDoubletControl() const override
+	const wdc::WellDoubletControl* get_wellDoubletControl() const override
 	{ return wellDoubletControl; }
 	void create_wellDoubletControl(const int& selection) override;
 				// is done at the begiining of each time step
 
         void initialize_temperatures() override;
-	void calculate_temperatures(const double& Q_H, const double& Q_w);
+	void calculate_temperatures(const double& Q_H, const double& Q_W);
 						// solves advection equation
         void update_temperatures() override;
 	double calculate_error() override;

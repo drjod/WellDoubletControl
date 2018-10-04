@@ -6,12 +6,14 @@
 #include "wdc_config.h"
 
 
+
 void FakeSimulator::create_wellDoubletControl(const int& selection)
 {
 	if(wellDoubletControl != nullptr)
 		delete wellDoubletControl;  // from last timestep
 	wellDoubletControl = 
-		WellDoubletControl::create_wellDoubletControl(selection);
+		wdc::WellDoubletControl::create_wellDoubletControl(selection, 
+			{c_accuracy_temperature, c_accuracy_flowrate, c_accuracy_powerrate});
 }
 
 
@@ -29,20 +31,19 @@ void FakeSimulator::initialize_temperatures()
 }
 
 void FakeSimulator::calculate_temperatures(const double& Q_H, 
-						const double& Q_w)
+						const double& Q_W)
 {
 	LOG("\t\tcalculate ");
-
 	// update inlet node
 	temperatures[0] = temperatures_previousTimestep[0];
 
 	for(int i=1; i<c_gridSize; i++)
 	{  // grid spacing is one meter (just 1 D - not radial)
 		// calculate temperatures on [1, GRIDSIZE)
-		// use always fabs(Q_w) > 0 (for injection and inextraction)
+		// use always fabs(Q_W) > 0 (for injection and inextraction)
 		// (temperature at well 2 is fixed)
 		temperatures[i] = temperatures_previousTimestep[i] +
-			c_timeStepSize * fabs(Q_w) * c_porosity *
+			c_timeStepSize * fabs(Q_W) * c_porosity *
 			(temperatures_previousTimestep[i-1] - temperatures_previousTimestep[i]);
 	}
 
@@ -66,14 +67,17 @@ void FakeSimulator::execute_timeStep(const double& well2_temperature)
 	{
 		LOG("\titeration " << i);
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
-					wellDoubletControl->get_result().Q_w);
+					wellDoubletControl->get_result().Q_W);
 		wellDoubletControl->evaluate_simulation_result(
 			{ temperatures[c_heatExchanger_nodeNumber], well2_temperature,
-			c_heatCapacity, c_heatCapacity });
-		
-		if(i > c_minNumberOfIterations && (calculate_error() < c_accuracy ||
-			wellDoubletControl->converged(temperatures[c_heatExchanger_nodeNumber], c_accuracy)))
-				break;
+				c_heatCapacity, c_heatCapacity });
+		if(i >= c_minNumberOfIterations-2 &&
+			(calculate_error() < c_accuracy_temperature && 
+			wellDoubletControl->converged()))
+		{
+			//std::cout << "break\n";
+			break;
+		}
 	}
 	log_file("\tIterations: " + std::to_string(i));
 }
@@ -115,7 +119,8 @@ void FakeSimulator::simulate(const int& wellDoubletControlScheme,
 }
 
 double FakeSimulator::calculate_error()
-{
+{	// error is temperatures
+	// error is powerrate and flowrate given by WDC
 	double error = 0.;
 
 	for(int i=0; i < c_gridSize; i++)

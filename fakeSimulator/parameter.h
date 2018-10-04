@@ -19,6 +19,8 @@ const int c_minNumberOfIterations = 3;
 const int c_maxNumberOfIterations = 200;
 const int c_numberOfTimeSteps = 10;
 const double c_timeStepSize = 1.e2;
-const double c_accuracy = 0.01;
+const double c_accuracy_temperature = 0.01;
+const double c_accuracy_flowrate = 1.e-6;
+const double c_accuracy_powerrate = 10;
 
 #endif

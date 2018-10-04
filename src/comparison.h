@@ -4,6 +4,7 @@
 #include <iostream>
 #include <cmath>
 #include <cassert>
+#include <memory>
 
 namespace wdc
 {
@@ -33,42 +34,16 @@ struct Smaller : public ComparisonMethod
         { return x < y - epsilon; }
 };
 
-
 struct Comparison
 {
-        ComparisonMethod* method;
+        std::unique_ptr<ComparisonMethod> method;
 
-        Comparison() 
+        Comparison() = default;
+        Comparison(ComparisonMethod* _method) : method(std::unique_ptr<ComparisonMethod>(_method)) {}
+
+        void configure(ComparisonMethod* _method)
 	{
-		//std::cout << "construct comparison without method" << std::endl;
-		method = 0; 
-	}
-
-        Comparison(ComparisonMethod* _method) : method(_method)
-	{
-		//std::cout << "construct comparison" << std::endl;
-	}
-
-	Comparison(Comparison& other)
-	{
-		//std::cout << "copy constructor" << std::endl;
-		method = other.method;
-		other.method = 0;
-	}
-
-	Comparison& operator=(Comparison&& other)
-	{
-		//std::cout << "move assignment" << std::endl;
-		method = other.method;
-		other.method = 0;
-		return *this;
-	}
-
-        ~Comparison() 
-	{ 
-		//std::cout << "destruct comparison" << std::endl;
-		if(method != 0) 
-			delete method;
+		method = std::unique_ptr<ComparisonMethod>(_method);
 	}
 
         bool operator()(const double& x, const double& y) const
@@ -77,7 +52,6 @@ struct Comparison
         }
 
 };
-
 
 inline double confined(const double& value, const double& lower_limit, const double& upper_limit)
 {

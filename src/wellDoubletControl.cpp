@@ -1,10 +1,14 @@
-#include "wellDoubletControl.h"
 #include <stdexcept>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <iomanip>
 #include <utility>
 #include <cfloat>  // for DBL_MIN
+#include "wellDoubletControl.h"
+
+namespace wdc
+{
 
 void WellDoubletControl::print_temperatures() const
 {
@@ -20,7 +24,8 @@ void WellDoubletControl::configure(
 	set_balancing_properties(balancing_properties);
 	// set input values for well doublet control, e.g. from file
 	result.Q_H = _Q_H;  // stored (Q_H>0) or extracted (Q_H<0) heat
-	result.flag_powerrateAdapted = false;
+	result.Q_W = 0.;
+	result.storage_state = on_demand;
 
 	value_target = _value_target;
 	value_threshold = _value_threshold;
@@ -37,7 +42,7 @@ void WellDoubletControl::configure(
 	}
 
 	// the scheme-dependent stuff
-	configureScheme();  // iterationState & comparison functions 
+	configure_scheme();  // iterationState & comparison functions 
 			//for temperature target (A, C), temperature constraint (B)
 	estimate_flowrate();  // an estimation for scheme A and a target for scheme B
 }
@@ -55,22 +60,24 @@ void WellDoubletControl::set_balancing_properties(const balancing_properties_t& 
 	LOG("\t\t\tset temperatures\theat exchanger: " <<
 			balancing_properties.T_HE << "\t\tupwind aquifer: " << balancing_properties.T_UA);
 	LOG("\t\t\tset heat capacities\theat exchanger: " << balancing_properties.volumetricHeatCapacity_HE
-					<< "\tupwind aquifer: " << balancing_properties.volumetricHeatCapacity_UA);
+					<< "\t\tupwind aquifer: " << balancing_properties.volumetricHeatCapacity_UA);
 }
 
 WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
-				const int& selection)
+				const int& selection, const accuracies_t& _accuracies)
 {
 	switch(selection)
 	{
 		case  0:
-			return new WellScheme_0();
+			return new WellScheme_0(_accuracies);
 		case  1:
-			return new WellScheme_1();
+			return new WellScheme_1(_accuracies);
 		case  2:
-			return new WellScheme_2();
+			return new WellScheme_2(_accuracies);
 		default:
-			throw std::runtime_error("WDC factory failed");
+			//throw std::runtime_error("WDC factory failed");
+			std::cout << "WDC factory failed\n";
+			abort();
 	}
 	return nullptr;
 }
@@ -78,3 +85,5 @@ WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
 #include "wellScheme_0.cpp"
 #include "wellScheme_1.cpp"
 #include "wellScheme_2.cpp"
+
+} // end namespace wdc
