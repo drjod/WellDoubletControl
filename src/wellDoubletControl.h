@@ -45,8 +45,8 @@ public:
 	struct accuracies_t
 	{
 		double temperature;  // 1.e-1  // for thresholds
-		double flowrate;    // 1.e-5  // used for comparison with threshold and zero, it is also minimum absolute flowrate
 		double powerrate;  // 10.  // for simulator
+		double flowrate;    // 1.e-5  // used for comparison with threshold and zero, it is also minimum absolute flowrate
 	};
 private:
 	result_t result;  // for the client

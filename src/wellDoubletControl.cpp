@@ -60,7 +60,7 @@ void WellDoubletControl::set_balancing_properties(const balancing_properties_t& 
 	LOG("\t\t\tset temperatures\theat exchanger: " <<
 			balancing_properties.T_HE << "\t\tupwind aquifer: " << balancing_properties.T_UA);
 	LOG("\t\t\tset heat capacities\theat exchanger: " << balancing_properties.volumetricHeatCapacity_HE
-					<< "\t\tupwind aquifer: " << balancing_properties.volumetricHeatCapacity_UA);
+					<< "\tupwind aquifer: " << balancing_properties.volumetricHeatCapacity_UA);
 }
 
 WellDoubletControl* WellDoubletControl::create_wellDoubletControl(

@@ -13,7 +13,7 @@ void FakeSimulator::create_wellDoubletControl(const int& selection)
 		delete wellDoubletControl;  // from last timestep
 	wellDoubletControl = 
 		wdc::WellDoubletControl::create_wellDoubletControl(selection, 
-			{c_accuracy_temperature, c_accuracy_flowrate, c_accuracy_powerrate});
+			{c_accuracy_temperature, c_accuracy_powerrate, c_accuracy_flowrate});
 }
 
 
