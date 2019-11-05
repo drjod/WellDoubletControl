@@ -32,7 +32,7 @@ void WellScheme_0::estimate_flowrate()
 
 void WellScheme_0::adapt_powerrate()
 {
-        set_powerrate(get_result().Q_H - fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
+        set_powerrate(get_result().Q_H - c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
                                         get_result().T_HE - value_threshold));
 // combine these
 	if(operationType == storing && get_result().Q_H < 0.)

@@ -53,7 +53,7 @@ void WellScheme_1::evaluate_simulation_result(const balancing_properties_t& bala
 			{  // cannot store / extract the heat
 				LOG("\t\t\tstop adapting flow rate");
 				set_storage_state(powerrate_to_adapt);
-				set_powerrate(get_result().Q_H);  // to set flag
+				//set_powerrate(get_result().Q_H);  // to set flag
 							// start adapting powerrate
 			}
 		}
@@ -94,12 +94,13 @@ void WellScheme_1::estimate_flowrate()
 
 	double operability = 1;
 	if(operationType == WellDoubletControl::storing)
-		operability = wdc::threshold(get_result().T_UA, value_target,
-						c_well_shutdown_temperature_range, wdc::upper);
+		operability = wdc::make_threshold_factor(get_result().T_UA, value_target,
+						well_shutdown_temperature_range, wdc::upper);
 	else
-		operability = wdc::threshold(get_result().T_UA, value_target,
-						c_well_shutdown_temperature_range, wdc::lower);
+		operability = wdc::make_threshold_factor(get_result().T_UA, value_target,
+						well_shutdown_temperature_range, wdc::lower);
 
+	//LOG("\t\twstr: " << well_shutdown_temperature_range);
 	LOG("\t\tOperability: " << operability);
 	//double well2_impact_factor = (operationType == storing) ?
 	//	wdc::threshold(get_result().T_UA, value_target,
@@ -112,11 +113,11 @@ void WellScheme_1::estimate_flowrate()
 		set_powerrate(get_result().Q_H * operability);
 		//LOG("\t\t\tAdjust wells - set power rate\t" << get_result().Q_H);
 	}
-	
+
 
 	set_flowrate((operationType == WellDoubletControl::storing) ?
-		wdc::confined(temp , accuracies.flowrate, value_threshold) :
-		wdc::confined(temp, value_threshold, accuracies.flowrate));
+		wdc::make_confined(temp , accuracies.flowrate, value_threshold) :
+		wdc::make_confined(temp, value_threshold, accuracies.flowrate));
       	
 	//if(std::isnan(get_result().Q_W))  // no check for -nan and inf
 	//	throw std::runtime_error("WellDoubletControl: nan when setting Q_W");	
@@ -145,11 +146,11 @@ void WellScheme_1::adapt_flowrate()
 	double operability = 1;  // [0, 1]
 
  	if(operationType == WellDoubletControl::storing)
-		operability = wdc::threshold(get_result().T_UA, value_target,
-						c_well_shutdown_temperature_range, wdc::upper);
+		operability = wdc::make_threshold_factor(get_result().T_UA, value_target,
+						well_shutdown_temperature_range, wdc::upper);
 	else
-		operability = wdc::threshold(get_result().T_UA, value_target, 
-						c_well_shutdown_temperature_range, wdc::lower);
+		operability = wdc::make_threshold_factor(get_result().T_UA, value_target, 
+						well_shutdown_temperature_range, wdc::lower);
 				// temperature at cold well 2 
 				// should not reach threshold of warm well 1
 	LOG("\t\tOperability: " << operability);
@@ -162,10 +163,10 @@ void WellScheme_1::adapt_flowrate()
 	}
 
 	set_flowrate((operationType == WellDoubletControl::storing) ?
-			wdc::confined(operability * get_result().Q_W *
+			wdc::make_confined(operability * get_result().Q_W *
 				(1 + flowrate_adaption_factor * deltaT),
 						accuracies.flowrate, value_threshold) :
-			wdc::confined(operability * get_result().Q_W *
+			wdc::make_confined(operability * get_result().Q_W *
 				(1 - flowrate_adaption_factor * deltaT),
 						value_threshold, -accuracies.flowrate));
 	
@@ -176,24 +177,26 @@ void WellScheme_1::adapt_flowrate()
 
 void WellScheme_1::adapt_powerrate()
 {
-        set_powerrate(get_result().Q_H - c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
+        double powerrate = get_result().Q_H - c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
                 get_result().T_HE -
                         // Scheme A: T_HE, Scheme C: T_HE - T_UA
 			// should take actually also volumetricHeatCapacity_UA 
-                value_target));
+                value_target);
  
-	if(operationType == storing && get_result().Q_H < 0.)
+	if(operationType == storing && powerrate < 0.)
 	{
 		set_powerrate(0.);
 		set_flowrate(0.);
 		LOG("\t\t\tswitch off well");
 	}
-	else if(operationType == extracting && get_result().Q_H > 0.)
+	else if(operationType == extracting && powerrate > 0.)
 	{
 		set_powerrate(0.);
 		set_flowrate(0.);
 		LOG("\t\t\tswitch off well");
 	}
+	else
+		set_powerrate(powerrate);
 	//if(std::isnan(get_result().Q_H))
 	//	throw std::runtime_error("WellDoubletControl: nan when adapting Q_H");	
 }

@@ -64,16 +64,16 @@ void WellDoubletControl::set_balancing_properties(const balancing_properties_t& 
 }
 
 WellDoubletControl* WellDoubletControl::create_wellDoubletControl(
-				const int& selection, const accuracies_t& _accuracies)
+				const int& selection, const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies)
 {
 	switch(selection)
 	{
 		case  0:
-			return new WellScheme_0(_accuracies);
+			return new WellScheme_0(_well_shutdown_temperature_range, _accuracies);
 		case  1:
-			return new WellScheme_1(_accuracies);
+			return new WellScheme_1(_well_shutdown_temperature_range, _accuracies);
 		case  2:
-			return new WellScheme_2(_accuracies);
+			return new WellScheme_2(_well_shutdown_temperature_range, _accuracies);
 		default:
 			//throw std::runtime_error("WDC factory failed");
 			std::cout << "WDC factory failed\n";

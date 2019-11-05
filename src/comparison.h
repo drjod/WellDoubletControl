@@ -53,33 +53,33 @@ struct Comparison
 
 };
 
-inline double confined(const double& value, const double& lower_limit, const double& upper_limit)
+inline double make_confined(const double& value, const double& lower_limit, const double& upper_limit)
 {
 	return fmin(fmax(value, lower_limit), upper_limit);
 }
 
 
-inline int sign(double x)
+inline int sign(const double& x)
 {
 	return (x>0.) ? 1 : ((x<0.) ? -1 : 0);
 }
 
 
 enum threshold_t{lower, upper};
-
-inline double threshold(double value, double threshold_value, double delta, threshold_t threshold)
+// function that returns floating point number between [0.,1.] if a parameter (named value) is close to a threshold (upper or lower)
+// returns:
+//     0.0: if value is at threshold or beyond
+//     1.0: if distance to threshold is larger than delta (but value has not reached threshold)
+//     1.0 reduced by S-curve (for smoothing): if distance of value to the threshold is smaller than delta
+inline double make_threshold_factor(const double& value, const double& threshold_value, const double& delta, const threshold_t& threshold)
 {
-	assert(delta != 0);
-	int sigma = (threshold == lower)? 1: -1;
-	double U = sigma * (value - threshold_value) / delta;
+	//assert(delta <= 0);
+	if(delta <=0) return 1.;
 
-	//std::cout << "U: " << U << std::endl;
-	if(U <= 0)
-		return 0;
-	else if(0 < U && U < 1)
-		return pow(U, 2*(1-U));
-	else
-		return 1;
+	const int sigma = (threshold == lower)? 1: -1;
+	const double U = sigma * (value - threshold_value) / delta;
+
+	return (U <= 0.) ? 0. : (( U < 1. ) ? pow(U, 2*(1-U)) : 1. );
 }
 
 

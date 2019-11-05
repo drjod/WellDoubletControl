@@ -12,7 +12,7 @@ void FakeSimulator::create_wellDoubletControl(const int& selection)
 	if(wellDoubletControl != nullptr)
 		delete wellDoubletControl;  // from last timestep
 	wellDoubletControl = 
-		wdc::WellDoubletControl::create_wellDoubletControl(selection, 
+		wdc::WellDoubletControl::create_wellDoubletControl(selection, 10., // well_shutdown_temperature_range 
 			{c_accuracy_temperature, c_accuracy_powerrate, c_accuracy_flowrate});
 }
 

@@ -10,14 +10,15 @@ namespace wdc
 {
 
 
-const double c_well_shutdown_temperature_range = 10.;
+// const double c_well_shutdown_temperature_range = 10.;
+
 // for schemes 1, 2
 // well doublet is shutdown if storage becomes full (when storing) or empty (when extracting) 
 // i.e.  flow and powerrate gruadually become zero if
 // 	storing:  T_UA (cold well) exceeds value_threshold - c_well_shutdown_temperature_range
 //	extracting: T_HE (warm well) falls below value_threshlod + c_well_shutdown_temperature_range 
-const double c_powerrate_adaption_factor = 0.9;
-// used in schemes 1 and 2 - try using 1 to reduce number of iterations
+const double c_powerrate_adaption_factor = 1.;
+// take 1. as value
 const double c_flowrate_adaption_factor = .5;
 // used in schemes 1 2 - it is modified during iteration with a mutable variable
 // Q_W = Q_W (1 +/- a (T_1 - value_target) / (T_HE - T_UA)) for scheme 1
@@ -53,11 +54,14 @@ private:
 	int _scheme_ID;
 protected:
 	accuracies_t accuracies; // const
+	double well_shutdown_temperature_range;  // 10. - to shut down if storage is full or empty 
+
 	double Q_H_old;
 	double Q_W_old;  // looks redundant
 
-	WellDoubletControl(int __scheme_ID, accuracies_t _accuracies) : 
-		_scheme_ID(__scheme_ID), accuracies(_accuracies), value_target(0.){} 
+	WellDoubletControl(int __scheme_ID, double _well_shutdown_temperature_range, accuracies_t _accuracies) : 
+		_scheme_ID(__scheme_ID), well_shutdown_temperature_range(_well_shutdown_temperature_range), 
+				accuracies(_accuracies), value_target(0.){} 
 
 	void set_flowrate(const double& _Q_W)
 	{ 
@@ -109,8 +113,8 @@ public:
 		const balancing_properties_t& balancing_properites);
 			// constraints are set at beginning of time step
 
-	static WellDoubletControl* create_wellDoubletControl(
-				const int& selection, const accuracies_t& _accuracies);
+	static WellDoubletControl* create_wellDoubletControl(const int& selection, 
+		const double& well_shutdown_temperature_range, const accuracies_t& _accuracies);
 			// instance is created before time-stepping
 	
 	void print_temperatures() const;
@@ -128,7 +132,8 @@ class WellScheme_0 : public WellDoubletControl
         void adapt_powerrate();
 	void configure_scheme() override;
 public:
-	WellScheme_0(const accuracies_t& _accuracies) : WellDoubletControl(0, _accuracies) {}
+	WellScheme_0(const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies) : 
+		WellDoubletControl(0, _well_shutdown_temperature_range, _accuracies) {}
 
 	void evaluate_simulation_result(const balancing_properties_t& balancing_properites) override;
 
@@ -146,7 +151,8 @@ class WellScheme_1 : public WellDoubletControl
         void adapt_powerrate();
 	void configure_scheme() override;
 public:
-	WellScheme_1(const accuracies_t& _accuracies) : WellDoubletControl(1, _accuracies) {}
+	WellScheme_1(const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies) : 
+		WellDoubletControl(1, _well_shutdown_temperature_range, _accuracies) {}
 
 	void evaluate_simulation_result(const balancing_properties_t& balancing_properites) override;
 	//bool converged(double _T_HE, double _accuracy) const override { return (fabs(_T_HE - value_target) < _accuracy || flag_converged); }
@@ -168,11 +174,17 @@ class WellScheme_2 : public WellDoubletControl
         void adapt_powerrate();
 	void configure_scheme() override;
 public:
-	WellScheme_2(const accuracies_t& _accuracies) : WellDoubletControl(2, _accuracies) {}
+	WellScheme_2(const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies) : 
+		WellDoubletControl(2, _well_shutdown_temperature_range, _accuracies) {}
 
 	void evaluate_simulation_result(const balancing_properties_t& balancing_properites) override;
 	//bool converged(double _T_HE, double _accuracy) const override { return (fabs(_T_HE - value_target) < _accuracy || flag_converged); }
-	bool flowrate_converged() const override { return true; }
+	bool flowrate_converged() const override 
+	{ 
+		if(beyond(get_result().T_HE, value_target) && get_result().storage_state == on_demand)
+			return false;
+		return fabs(get_result().Q_W - Q_W_old) < accuracies.flowrate; 
+	}
 };
 
 

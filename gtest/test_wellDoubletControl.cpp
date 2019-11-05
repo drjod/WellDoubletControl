@@ -34,20 +34,6 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	// input: scheme, Q_H, value_target, value_threshold
 	// output: Q_H, Q_w, T1, flag_powerrateAdapted
 
-	// Scheme 1 - storing
-	std::make_tuple(1, 1.e5, 100., 0.01, // T_HE_target, Q_w_max
-			1.e5, 0.0, 70., wdc::WellDoubletControl::target_not_achievable),  // target T1 not reached although flow rate is zero
-	std::make_tuple(1, 1.e6, 100., 0.01, // T_HE_target, Q_w_max
-			1.e6, 0.008, 100., wdc::WellDoubletControl::on_demand),  // target T1 reached by adapting flow rate
-	std::make_tuple(1, 2.e6, 100., 0.01, // T_HE_target, Q_w_max
-			1.25e6, 0.01, 100., wdc::WellDoubletControl::powerrate_to_adapt),  // target T1 reached by adapting power rate
-	// Scheme 1 - extracting
-	std::make_tuple(1, -1.e5, 25., -0.01, // T_HE_target, Q_w_min
-			-1.e5, 0., 30., wdc::WellDoubletControl::target_not_achievable),  // target T1 not reached although flow rate is at threshold
-	std::make_tuple(1, -5.e5, 25., -0.01, // T_HE_target, Q_w_min
-			-5.e5, -0.008, 25., wdc::WellDoubletControl::on_demand),  // target T1 reached by adapting flow rate
-	std::make_tuple(1, -1.e6, 25., -0.01, // T_HE_target, Q_w_min
-			-6.245e5, -0.01, 25., wdc::WellDoubletControl::powerrate_to_adapt),  // target T1 reached by adapting power rate
 	////// Scheme 0 - storing
 	std::make_tuple(0, 1.e6, 0.01, 100., // Q_w_target, T_HE_max
 			1.e6, 0.01, 89.961, wdc::WellDoubletControl::on_demand),  // has not reached threshold
@@ -57,22 +43,39 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 	std::make_tuple(0, -1.e5, -0.01, 30., // Q_w_target, T_HE_min
 			-1.e5, -0.01, 46., wdc::WellDoubletControl::on_demand),  // has not reached threshold
 	std::make_tuple(0, -1.e6, -0.01, 30., // Q_w_target, T_HE_min
-			-5.e5, -0.01, 30., wdc::WellDoubletControl::powerrate_to_adapt)  // has not reached threshold
+			-5.e5, -0.01, 30., wdc::WellDoubletControl::powerrate_to_adapt),  // has not reached threshold
+	// Scheme 1 - storing
+	std::make_tuple(1, 1.e5, 100., 0.01, // T_HE_target, Q_w_max
+			1.e5, 0.0, 70., wdc::WellDoubletControl::target_not_achievable),  // target T1 not reached although flow rate is zero
+	std::make_tuple(1, 1.e6, 100., 0.01, // T_HE_target, Q_w_max
+			1.e6, 0.008, 100., wdc::WellDoubletControl::on_demand),  // target T1 reached by adapting flow rate
+	std::make_tuple(1, 2.e6, 100., 0.01, // T_HE_target, Q_w_max
+			1.25e6, 0.01, 100., wdc::WellDoubletControl::powerrate_to_adapt),  // target T1 reached by adapting power rate
 
-/*	//// Scheme 2 - storing (same examples as for scheme A, and should give same results)
-	std::make_tuple(2, 1.e5, 90., 0.01, // DT_target, Q_w_max
-			1.e5, 0.0, 70., wdc::WellDoubletControl::on_demand),  // target DT not reached although flow rate is zero
-	std::make_tuple(2, 1.e6, 90., 0.01, // DT_target, Q_w_max
+	// Scheme 1 - extracting
+	std::make_tuple(1, -1.e5, 25., -0.01, // T_HE_target, Q_w_min
+			-1.e5, 0., 30., wdc::WellDoubletControl::target_not_achievable),  // target T1 not reached although flow rate is at threshold
+	std::make_tuple(1, -5.e5, 25., -0.01, // T_HE_target, Q_w_min
+			-5.e5, -0.008, 25., wdc::WellDoubletControl::on_demand),  // target T1 reached by adapting flow rate
+	std::make_tuple(1, -1.e6, 25., -0.01, // T_HE_target, Q_w_min
+			-6.245e5, -0.01, 25., wdc::WellDoubletControl::powerrate_to_adapt),  // target T1 reached by adapting power rate
+
+
+	//// Scheme 2 - storing (same examples as for scheme A, and should give same results)
+	std::make_tuple(2, 1.e5, 450.e6, 0.01, // DT_target, Q_w_max
+			1.e5, 0.0, 70., wdc::WellDoubletControl::target_not_achievable),  // target DT not reached although flow rate is zero
+	std::make_tuple(2, 1.e6, 450.e6, 0.01, // DT_target, Q_w_max
 			1.e6, 0.008, 100., wdc::WellDoubletControl::on_demand),  // target DT reached by adapting flow rate
-	std::make_tuple(2, 2.e6, 90., 0.01,  // DT_target, Q_w_max
+	std::make_tuple(2, 2.e6, 450.e6, 0.01,  // DT_target, Q_w_max
 			1.25e6, 0.01, 100., wdc::WellDoubletControl::powerrate_to_adapt),  // target DT reached by adapting power rate
 	// Scheme 2 - extracting
-	std::make_tuple(2, -1.e5, 10., -0.01, // DT_target, Q_w_min
-			-1.e5, 0., 30., wdc::WellDoubletControl::on_demand),  // target DT not reached although flow rate is at threshold
-	std::make_tuple(2, -5.e5, 10., -0.01,  // DT_target, Q_w_min
-			-5.e5, -0.00666, 20., wdc::WellDoubletControl::on_demand),  // target DT not reached by adapting flow rate
-	std::make_tuple(2, -1.e6, 10., -0.01,  // DT_target, Q_w_min
-			-7.5e5, -0.01, 20., wdc::WellDoubletControl::powerrate_to_adapt)  // target DT reached by adapting flow rate
-*/
+	std::make_tuple(2, -1.e5, -125.e6, -0.01, // DT_target, Q_w_min
+			-1.e5, 0., 30., wdc::WellDoubletControl::target_not_achievable),  // target DT not reached although flow rate is at threshold
+
+	std::make_tuple(2, -5.e5, -125.e6, -0.01,  // DT_target, Q_w_min
+			-5.e5, -0.008, 25., wdc::WellDoubletControl::on_demand),  // target DT not reached by adapting flow rate
+	std::make_tuple(2, -1.e6, -125.e6, -0.01,  // DT_target, Q_w_min
+			-6.245e5, -0.01, 25., wdc::WellDoubletControl::powerrate_to_adapt)  // target DT reached by adapting flow rate
+
 ));
 

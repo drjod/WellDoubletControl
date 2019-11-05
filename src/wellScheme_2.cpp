@@ -2,69 +2,70 @@
 void WellScheme_2::configure_scheme()
 {
 	deltaTsign_stored = 0, flowrate_adaption_factor = c_flowrate_adaption_factor;  
-	//flag_converged = false; 
 
-	LOG("\t\t\tconfigure scheme 2");
-	//simulation_result_aiming_at_target =
-	//	&WellScheme_2::temperature_difference_well1well2;
+	LOG("\t\t\tconfigure scheme 1");
 
 	if(operationType == storing)
 	{
 		LOG("\t\t\t\tfor storing");
-		//beyond = std::move(wdc::Comparison(
-		//	new wdc::Greater(c_accuracy_temperature)));
-		//notReached =  std::move(wdc::Comparison(
-		//	new wdc::Smaller(c_accuracy_temperature)));
+		beyond.configure(new wdc::Greater(accuracies.temperature));
+		notReached.configure(new wdc::Smaller(accuracies.temperature));
 	}
 	else
 	{
 		LOG("\t\t\t\tfor extracting");
-		//beyond = std::move(wdc::Comparison(
-		//	new wdc::Smaller(c_accuracy_temperature)));
-		//notReached = std::move(wdc::Comparison(
-		//	new wdc::Greater(c_accuracy_temperature)));
+		beyond.configure(new wdc::Smaller(accuracies.temperature));
+		notReached.configure(new wdc::Greater(accuracies.temperature));
 	}
 }
 
 void WellScheme_2::evaluate_simulation_result(const balancing_properties_t& balancing_properties)
 {
 	set_balancing_properties(balancing_properties);
-	//flag_converged = false;  // for flowrate adaption
+	Q_H_old = get_result().Q_H;
+	Q_W_old = get_result().Q_W;
  
+	double value = volumetricHeatCapacity_HE * get_result().T_HE - volumetricHeatCapacity_UA * get_result().T_UA;
+	//if(operationType == extracting)
+	//	value = -value;
+
+std::cout << "value: " << value << "\n";
+std::cout << "value_target: " << value_target << "\n";
 	//double simulation_result_aiming_at_target = 
 	//	(this->*(this->simulation_result_aiming_at_target))();
 	// first adapt flow rate if temperature 1 at warm well is not
 	// at target value
-	/*if(!get_result().flag_powerrateAdapted)
+	//std::cout << "here " << get_result().storage_state << " \n";
+	if(get_result().storage_state == on_demand)
 	{	// do not put this after adapt_powerrate below since
 		// powerrate must be adapted in this iteration if flow rate adaption fails
 		// otherwise error calucaltion in iteration loop results in zero
-		if(beyond(simulation_result_aiming_at_target, value_target))
+		if(beyond(value, value_target))
 		{
-			if(fabs(get_result().Q_W - value_threshold) > c_accuracy_flowrate)
+std::cout << "value_threshold: " << value_threshold << "\n";
+//std::cout << "Q_w: " << get_result().Q_W << "\n";
+			if(fabs(get_result().Q_W - value_threshold) > accuracies.flowrate)
 				adapt_flowrate();
 			else
 			{  // cannot store / extract the heat
 				LOG("\t\t\tstop adapting flow rate");
-				set_powerrate(get_result().Q_H);  // to set flag
+				set_storage_state(powerrate_to_adapt);
+				//set_powerrate(get_result().Q_H);  // to set flag
 							// start adapting powerrate
 			}
 		}
-		else if(notReached(
-			simulation_result_aiming_at_target, value_target))
+		else if(notReached(value, value_target))
 		{
-			if(fabs(get_result().Q_W) > c_accuracy_flowrate)
+			if(fabs(get_result().Q_W) > accuracies.flowrate)
 				adapt_flowrate();
 			else
 			{
-				std::cout << "converged\n";
-				flag_converged = true;
-					// cannot adapt flowrate further
-					// (and powerrate is too low)
+				set_storage_state(target_not_achievable);
+					// cannot adapt flowrate further (and powerrate is too low)
 			}
 		}
 	}
-	*/
+
 	if(get_result().storage_state == powerrate_to_adapt)
 		adapt_powerrate(); // continue adapting
 				// iteration is checked by simulator
@@ -72,124 +73,101 @@ void WellScheme_2::evaluate_simulation_result(const balancing_properties_t& bala
 
 void WellScheme_2::estimate_flowrate()
 {
-/*
-	double temp, denominator;
-	
-	denominator= volumetricHeatCapacity_HE * value_target;
+	double temp, denominator, flowrate;
+
+	if(operationType == WellDoubletControl::storing)
+		denominator = volumetricHeatCapacity_HE * get_result().T_HE - volumetricHeatCapacity_UA * get_result().T_UA;
+	else // just -
+		denominator = - (volumetricHeatCapacity_HE * get_result().T_HE - volumetricHeatCapacity_UA * get_result().T_UA);
+	LOG("\t\tdenom: " << denominator);
 
 	if(fabs(denominator) < DBL_MIN)
 	{
-		temp = c_accuracy_flowrate;
+		temp = accuracies.flowrate;
 	}
 	else
 	{
 		temp = get_result().Q_H / denominator;
 	}
 
-		double well_interaction_factor = 1;
-		if(operationType == WellDoubletControl::storing)
-			well_interaction_factor = wdc::threshold(get_result().T_UA, value_target,
-							c_well_shutdown_temperature_range, wdc::upper);
-		else
-			well_interaction_factor = wdc::threshold(get_result().T_HE, value_target,
-							c_well_shutdown_temperature_range, wdc::lower);
+//temp = value_threshold / 2;
 
-		//LOG("\t\tWELL INTERACTION FACTOR: " << well_interaction_factor);
-		//double well2_impact_factor = (operationType == storing) ?
-		//	wdc::threshold(result.T_UA, value_target,
-		//	std::fabs(value_target)*THRESHOLD_DELTA_FACTOR_WELL2,
-		//	wdc::upper) : 1.;	// temperature at cold well 2 
-		//			// should not reach threshold of warm well 1
-		if(well_interaction_factor < 1)
-		{
-			temp *= well_interaction_factor;
-			set_powerrate(get_result().Q_H * well_interaction_factor);
-        		LOG("\t\t\tAdjust wells - set power rate\t" << get_result().Q_H);
-		}
-	
-	// ?????
-	//set_flowrate(operationType == WellDoubletControl::storing) ?
-	//	wdc::confined(temp , c_accuracy_flowrate, value_threshold) :
-	//	wdc::confined(temp, value_threshold, c_accuracy_flowrate));
+	flowrate = (operationType == WellDoubletControl::storing) ?
+		wdc::make_confined(temp , accuracies.flowrate, value_threshold) :
+		wdc::make_confined(temp, value_threshold, -accuracies.flowrate);
+
+	LOG("\t\testimated flow rate: " << flowrate);
+
+	set_flowrate(flowrate);
       	
-	//if(std::isnan(result.Q_W))  // no check for -nan and inf
+	//if(std::isnan(get_result().Q_W))  // no check for -nan and inf
 	//	throw std::runtime_error("WellDoubletControl: nan when setting Q_W");	
-*/
+
 }
 
 void WellScheme_2::adapt_flowrate()
 {
-/*
-	double deltaT; 
-	// =  (this->*(this->simulation_result_aiming_at_target))() -
-	//			value_target;
-  	//
-	//deltaT /= (this->*(this->simulation_result_aiming_at_target))();
-	
-	// decreases flowrate_adaption_factor to avoid that T_HE jumps 
-	// around threshold (deltaT flips sign)
-	if(deltaTsign_stored != 0  // == 0: take initial value for factor
-			&& deltaTsign_stored != wdc::sign(deltaT))
-		flowrate_adaption_factor = (c_flowrate_adaption_factor == 1)?
-			flowrate_adaption_factor * 0.9 :  // ?????
-			flowrate_adaption_factor * c_flowrate_adaption_factor;
-
-	deltaTsign_stored = wdc::sign(deltaT);
-
-	double well_interaction_factor = 1; 
-
+	double Q_T;// = volumetricHeatCapacity_HE * get_result().T_HE  - volumetricHeatCapacity_UA * get_result().T_UA;
+	double deltaQ_w;// = (Q_T - value_target) / value_target;
+  
 	if(operationType == WellDoubletControl::storing)
-		well_interaction_factor = wdc::threshold(get_result().T_UA, value_target,
-						c_well_shutdown_temperature_range, wdc::upper);
-	else
-		well_interaction_factor = wdc::threshold(get_result().T_HE, value_target, 
-						c_well_shutdown_temperature_range, wdc::lower);
-				// temperature at cold well 2 
-				// should not reach threshold of warm well 1
-	LOG("\t\tWELL INTERACTION FACTOR: " << well_interaction_factor);
-
-	if(well_interaction_factor < 1)
-	{	// storing: temperature at cold well 2 is close to maximum of well 1
-		// extracting: temperature at warm well 1 is close to minumum
-		set_powerrate(get_result().Q_H * well_interaction_factor);
-        	//LOG("\t\t\tAdjust wells - set power rate\t" << get_result().Q_H);
+	{
+		Q_T = volumetricHeatCapacity_HE * get_result().T_HE - volumetricHeatCapacity_UA * get_result().T_UA;
+		deltaQ_w = (Q_T - value_target) / value_target;
 	}
+	else  // -
+	{
+		Q_T = volumetricHeatCapacity_UA * get_result().T_UA - volumetricHeatCapacity_HE * get_result().T_HE;
+		deltaQ_w = (value_target + Q_T) / value_target;
+	}
+std::cout << "deltaQ_w: " << deltaQ_w << "\n";
 
 	set_flowrate((operationType == WellDoubletControl::storing) ?
-			wdc::confined(well_interaction_factor * get_result().Q_W *
-				(1 + flowrate_adaption_factor * deltaT),
-						c_accuracy_flowrate, value_threshold) :
-			wdc::confined(well_interaction_factor * get_result().Q_W *
-				(1 - flowrate_adaption_factor * deltaT),
-						value_threshold, - c_accuracy_flowrate));
+			wdc::make_confined(get_result().Q_W * (1 + deltaQ_w),
+						accuracies.flowrate, value_threshold) :
+		wdc::make_confined(get_result().Q_W * (1 - deltaQ_w), value_threshold, -accuracies.flowrate));
 	
-	//if(std::isnan(result.Q_W))
-	//	throw std::runtime_error(
-	//		"WellDoubletControl: nan when adapting Q_W");	
-*/
 }
 
 void WellScheme_2::adapt_powerrate()
 {
-        /*set_powerrate(get_result().Q_H - c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
-                (this->*(this->simulation_result_aiming_at_target))() -
-                        // Scheme A: T_HE, Scheme C: T_HE - T_UA
-			// should take actually also volumetricHeatCapacity_UA 
-                value_target));
- 	*/
-	if(operationType == storing && get_result().Q_H < 0.)
+
+	double spread, powerrate;
+
+	if(operationType == WellDoubletControl::storing)
+	{
+		spread = volumetricHeatCapacity_HE * get_result().T_HE - volumetricHeatCapacity_UA * get_result().T_UA; 
+		if(fabs(spread) < 1.e-10) spread = 1.e-10;
+
+		powerrate = get_result().Q_H * (1 - c_powerrate_adaption_factor * 
+			( spread - value_target) / spread);
+ 	}
+	else
+	{
+		spread = volumetricHeatCapacity_UA * get_result().T_UA - volumetricHeatCapacity_HE * get_result().T_HE; 
+		if(fabs(spread) < 1.e-10) spread = 1.e-10;
+
+		powerrate = get_result().Q_H * (1 - c_powerrate_adaption_factor * 
+			( value_target + spread) / spread);
+	}
+std::cout << "spread: " << spread << '\n';
+
+	if(operationType == storing && powerrate < 0.)
 	{
 		set_powerrate(0.);
 		set_flowrate(0.);
 		LOG("\t\t\tswitch off well");
 	}
-	else if(operationType == extracting && get_result().Q_H > 0.)
+	else if(operationType == extracting && powerrate > 0.)
 	{
 		set_powerrate(0.);
 		set_flowrate(0.);
 		LOG("\t\t\tswitch off well");
 	}
-	//if(std::isnan(result.Q_H))
+	else
+		set_powerrate(powerrate);
+	//if(std::isnan(get_result().Q_H))
 	//	throw std::runtime_error("WellDoubletControl: nan when adapting Q_H");	
+
 }
 
