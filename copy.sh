@@ -1,7 +1,7 @@
 #!/bin/bash
 
-simulator=../ogs_kb1
-wdc_folder=$simulator/Libs/WellDoubletControl
+simulator_file=../ogs_kb1
+wdc_folder=$simulator_file/Libs/WellDoubletControl
 
 mkdir -p $wdc_folder
 

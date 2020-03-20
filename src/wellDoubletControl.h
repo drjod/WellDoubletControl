@@ -130,8 +130,9 @@ class WellScheme_0 : public WellDoubletControl
 {
         void estimate_flowrate() override;
         void adapt_powerrate();
-	void configure_scheme() override;
+
 public:
+	void configure_scheme() override;
 	WellScheme_0(const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies) : 
 		WellDoubletControl(0, _well_shutdown_temperature_range, _accuracies) {}
 
@@ -149,8 +150,8 @@ class WellScheme_1 : public WellDoubletControl
         void estimate_flowrate() override;
        	void adapt_flowrate();
         void adapt_powerrate();
-	void configure_scheme() override;
 public:
+	void configure_scheme() override;
 	WellScheme_1(const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies) : 
 		WellDoubletControl(1, _well_shutdown_temperature_range, _accuracies) {}
 
@@ -172,8 +173,8 @@ class WellScheme_2 : public WellDoubletControl
         void estimate_flowrate() override;
        	void adapt_flowrate();
         void adapt_powerrate();
-	void configure_scheme() override;
 public:
+	void configure_scheme() override;
 	WellScheme_2(const double& _well_shutdown_temperature_range, const accuracies_t& _accuracies) : 
 		WellDoubletControl(2, _well_shutdown_temperature_range, _accuracies) {}
 

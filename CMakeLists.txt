@@ -3,7 +3,7 @@ project(WellDoubletControl)
 set(WellDoubletControl_VERSION_MAJOR 1)
 set(WellDoubletControl_VERSION_MINOR 0)
 set(logging 1)
-option(GTEST "Use google test" ON)
+option(GTEST "Use google test" OFF)
 
 
 configure_file(
