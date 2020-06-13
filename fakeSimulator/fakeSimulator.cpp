@@ -19,7 +19,7 @@ void FakeSimulator::create_wellDoubletControl(const int& selection)
 
 void FakeSimulator::initialize_temperatures()
 {
-	LOG("\tinitialize simulation");
+	WDC_LOG("\tinitialize simulation");
 	for(int i=0; i<c_gridSize; i++)
 	{
 		temperatures_previousTimestep[i] = c_temperature_storage_initial; 
@@ -27,13 +27,13 @@ void FakeSimulator::initialize_temperatures()
 		temperatures[i] = c_temperature_storage_initial; 
 					// as input for WellDoubletControl
 	}
-	LOG(*this);
+	WDC_LOG(*this);
 }
 
 void FakeSimulator::calculate_temperatures(const double& Q_H, 
 						const double& Q_W)
 {
-	LOG("\t\tcalculate ");
+	WDC_LOG("\t\tcalculate ");
 	// update inlet node
 	temperatures[0] = temperatures_previousTimestep[0];
 
@@ -65,7 +65,7 @@ void FakeSimulator::execute_timeStep(const double& well2_temperature)
 	int i;
 	for(i=0; i<c_maxNumberOfIterations; i++)
 	{
-		LOG("\titeration " << i);
+		WDC_LOG("\titeration " << i);
 		calculate_temperatures(wellDoubletControl->get_result().Q_H,
 					wellDoubletControl->get_result().Q_W);
 		wellDoubletControl->evaluate_simulation_result(
@@ -99,7 +99,7 @@ void FakeSimulator::simulate(const int& wellDoubletControlScheme,
 			std::to_string(value_threshold)).c_str(), fout);
 	for(int i=0; i<c_numberOfTimeSteps; i++)
 	{       
-		LOG("time step " << i);
+		WDC_LOG("time step " << i);
 		log_file("Time step: " + std::to_string(i) + "\t" +
 			std::to_string(wellDoubletControlScheme) + " " +
 			std::to_string(Q_H) + " " +
@@ -113,7 +113,7 @@ void FakeSimulator::simulate(const int& wellDoubletControlScheme,
 
 		execute_timeStep(well2_temperature);
 		
-		LOG(*this);
+		WDC_LOG(*this);
 		update_temperatures();
 	}
 }
@@ -130,7 +130,7 @@ double FakeSimulator::calculate_error()
 		temperatures_previousIteration[i] = temperatures[i];
 	}
 
-	LOG("\t\terror: " << error);
+	WDC_LOG("\t\terror: " << error);
 	return error;
 }
 

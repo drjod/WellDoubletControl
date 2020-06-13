@@ -61,16 +61,16 @@ INSTANTIATE_TEST_CASE_P(SCHEMES, WellDoubletTest, testing::Values(
 			-6.245e5, -0.01, 25., wdc::WellDoubletControl::powerrate_to_adapt),  // target T1 reached by adapting power rate
 
 
-	//// Scheme 2 - storing (same examples as for scheme A, and should give same results)
-	std::make_tuple(2, 1.e5, 450.e6, 0.01, // DT_target, Q_w_max
-			1.e5, 0.0, 70., wdc::WellDoubletControl::target_not_achievable),  // target DT not reached although flow rate is zero
+	//// Scheme 2 - storing (same examples as for scheme 0, and should give same results)
+	//std::make_tuple(2, 1.e5, 450.e6, 0.01, // DT_target, Q_w_max
+	//		1.e5, 0.0, 70., wdc::WellDoubletControl::target_not_achievable)  // target DT not reached although flow rate is zero
 	std::make_tuple(2, 1.e6, 450.e6, 0.01, // DT_target, Q_w_max
 			1.e6, 0.008, 100., wdc::WellDoubletControl::on_demand),  // target DT reached by adapting flow rate
 	std::make_tuple(2, 2.e6, 450.e6, 0.01,  // DT_target, Q_w_max
 			1.25e6, 0.01, 100., wdc::WellDoubletControl::powerrate_to_adapt),  // target DT reached by adapting power rate
 	// Scheme 2 - extracting
-	std::make_tuple(2, -1.e5, -125.e6, -0.01, // DT_target, Q_w_min
-			-1.e5, 0., 30., wdc::WellDoubletControl::target_not_achievable),  // target DT not reached although flow rate is at threshold
+	//std::make_tuple(2, -1.e5, -125.e6, -0.01, // DT_target, Q_w_min
+	//		-1.e5, 0., 30., wdc::WellDoubletControl::target_not_achievable),  // target DT not reached although flow rate is at threshold
 
 	std::make_tuple(2, -5.e5, -125.e6, -0.01,  // DT_target, Q_w_min
 			-5.e5, -0.008, 25., wdc::WellDoubletControl::on_demand),  // target DT not reached by adapting flow rate

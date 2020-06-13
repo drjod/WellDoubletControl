@@ -3,7 +3,7 @@ project(WellDoubletControl)
 set(WellDoubletControl_VERSION_MAJOR 1)
 set(WellDoubletControl_VERSION_MINOR 0)
 set(logging 1)
-option(GTEST "Use google test" OFF)
+option(GTEST "Use google test" ON)
 
 
 configure_file(
@@ -35,6 +35,7 @@ add_subdirectory(src)
 # target_link_libraries(simulate wellDoubletControl)
 # target_link_libraries(simulate fakeSimulator)
 if(GTEST)
+	message(STATUS "GTEST ON")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
         add_subdirectory(fakeSimulator)
                 add_subdirectory("${PROJECT_SOURCE_DIR}/ext/gtest-1.8.0")
