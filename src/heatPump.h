@@ -1,5 +1,5 @@
 #ifndef HEAT_PUMP_H
-#define HET_PUMP_H
+#define HEAT_PUMP_H
 
 #include "wdc_config.h"
 

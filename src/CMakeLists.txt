@@ -1,2 +1,2 @@
 
-add_library(wellDoubletControl wellDoubletControl.cpp)
+add_library(wellDoubletControl wellDoubletControl.cpp heatPump.cpp)
