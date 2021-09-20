@@ -160,9 +160,14 @@ void WellScheme_0::adapt_powerrate()
 		wdc::make_threshold_factor(get_result().T_UA, value_threshold,  // retrieving
 			well_shutdown_temperature_range, wdc::lower);
 
-	set_powerrate(operability * (get_result().Q_H - c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
+	set_powerrate(operability * (get_result().Q_H  - c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
 		get_result().T_HE - value_threshold)));
+/*
+	std::cout << "Diff:   " <<  c_powerrate_adaption_factor * fabs(get_result().Q_W) * volumetricHeatCapacity_HE * (
+		get_result().T_HE - value_threshold) << '\n';
 
+	std::cout << "Thresh: " << value_threshold << '\n';
+*/
 	if(operability < 1.)
 	{
 		WDC_LOG("\t\toperability: " << operability);
@@ -282,6 +287,7 @@ void WellScheme_1::estimate_flowrate()
 		set_storage_state(rates_reduced);
 	}
 
+
 	set_flowrate((operationType == WellDoubletControl::storing) ?
 		wdc::make_confined(flowrate, accuracies.flowrate, value_threshold) :
 		wdc::make_confined(flowrate, value_threshold, -accuracies.flowrate));
@@ -397,6 +403,9 @@ void WellScheme_2::evaluate_simulation_result(const balancing_properties_t& bala
 	Q_W_old = get_result().Q_W;
 
 	const double spread = get_result().T_HE - get_result().T_UA;
+
+	const double Q_H = (get_result().Q_H_sys > 0.) ? get_result().Q_H_sys : 
+		heatPump->calculate_heat_source(get_result().Q_H_sys, balancing_properties.T_UA, balancing_properties.T_HE);  // !!! call to update COP
 
 	if (get_result().storage_state == on_demand)
 	{	// do not put this after adapt_powerrate below since

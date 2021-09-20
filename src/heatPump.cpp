@@ -17,7 +17,7 @@ double CarnotHeatPump::calculate_heat_source(const double& _heat_sink,
 	else
 	{
 		heat_sink = _heat_sink;
-		WDC_LOG("Carnot COP: " << COP);
+		//WDC_LOG("Carnot COP: " << COP);
 		return _heat_sink * (COP-1) / COP;
 	}
 }

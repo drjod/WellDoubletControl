@@ -111,6 +111,7 @@ public:
 	double get_system_powerrate() const { return result.Q_H_sys; }
 	double get_system_target_powerrate() const { return Q_H_sys_target; }
 	double get_COP() const { return heatPump->get_COP(); }
+	double get_heatPumpParameter() const { return heatPump->get_parameter(); }
 	void set_heatPump(const int& _type, const double& T_sink, const double& eta);
 
 	virtual ~WellDoubletControl() { delete heatPump; }
